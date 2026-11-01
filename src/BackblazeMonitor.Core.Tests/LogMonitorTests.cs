@@ -134,7 +134,7 @@ public sealed class LogMonitorTests : IDisposable
 
         var ok = new LogMonitor(_logDir, _history) { HistSaved = -42 };
         ok.Sample(T("2026-10-02 00:07:00"));
-        Assert.True(ok.HistSaved != -42);
+        Assert.NotEqual(-42, ok.HistSaved);
         Assert.True(File.Exists(_history));
         // unchanged files, but the slot count differs from the last save: written again after a failure
         var retry = new LogMonitor(_logDir, Path.Combine(_dir, "later", "historique.txt"));
