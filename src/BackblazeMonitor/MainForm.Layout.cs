@@ -201,6 +201,7 @@ internal sealed partial class MainForm
             FlatStyle = FlatStyle.Flat,
             TextAlign = ContentAlignment.MiddleLeft,
             AccessibleName = "Last files sent",
+            AccessibleDescription = "Collapsed",
             TabStop = true,
             TabIndex = 6,
         };

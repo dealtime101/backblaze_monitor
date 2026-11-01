@@ -883,6 +883,8 @@ internal sealed partial class MainForm : Form, ITrayHost
         var h = _filesOpen ? _lvFiles.Bottom + 14 : _btnFiles.Bottom + 6;
         ClientSize = new Size(ClientSize.Width, h);
         _btnFiles.Text = FilesButtonText + (_filesOpen ? ArrowUp : ArrowDown);
+        // The arrow is a drawing for a screen reader: the state is said in words
+        _btnFiles.AccessibleDescription = _filesOpen ? "Expanded" : "Collapsed";
         var wa = Screen.FromRectangle(Bounds).WorkingArea;
         if (Bottom > wa.Bottom) Top = Math.Max(wa.Top, wa.Bottom - Height);
         _filesKey = "";
