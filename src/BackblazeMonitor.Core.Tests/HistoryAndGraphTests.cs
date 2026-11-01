@@ -279,6 +279,16 @@ public class HistoryAndGraphTests
     }
 
     [Fact]
+    public void The_rate_in_the_tooltip_is_the_rate_the_curve_is_drawn_at()
+    {
+        var now = new DateTime(2026, 9, 27, 12, 4, 25);
+        var blocks = Enumerable.Range(1, 5).Select(i => new LogBlock(now.AddSeconds(-15), 452e3, 10485760, $"f{i}.mkv"))
+            .Append(new LogBlock(now.AddSeconds(-51), 564e3, 10485760, "f6.mkv")).OrderBy(b => b.Time).ToList();
+        var series = RateCalculator.GetRateSeries(blocks);
+        for (var i = 0; i < blocks.Count; i++) Assert.Equal(RateCalculator.GetInFlightRate(blocks, i), series[i]);
+    }
+
+    [Fact]
     public void Curve_of_no_point_is_empty() => Assert.Empty(GraphCurve.Get(Array.Empty<LogBlock>(), Now, 272, 38));
 
     [Fact]
