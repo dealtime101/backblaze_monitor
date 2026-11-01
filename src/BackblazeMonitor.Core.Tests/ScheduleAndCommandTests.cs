@@ -183,7 +183,12 @@ public class ScheduleAndCommandTests
     {
         const string sid = "S-1-5-21-1-2-3-1001";
         var setup = AgentCommands.GetSetup(@"C:\x\requete.txt", Bits, sid);
-        Assert.StartsWith("try {\r\n$a = New-ScheduledTaskAction -Execute 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe' -Argument '-NoProfile -NonInteractive -EncodedCommand ", setup);
+        // the request folder: protected ACL, SYSTEM and administrators in full, the tile's user to read, write and delete, nobody else
+        Assert.StartsWith("try {\r\nNew-Item -ItemType Directory -Force -Path 'C:\\x' | Out-Null\r\n", setup);
+        Assert.Contains("SetSecurityDescriptorSddlForm('D:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;0x1301df;;;" + sid + ")')\r\n", setup);
+        Assert.Contains("Set-Acl -LiteralPath 'C:\\x' -AclObject $ac\r\n$a = New-ScheduledTaskAction", setup);
+        foreach (var wide in new[] { ";;;WD)", ";;;BU)", ";;;AU)" }) Assert.DoesNotContain(wide, setup); // no Everyone, Users, Authenticated Users
+        Assert.Contains("$a = New-ScheduledTaskAction -Execute 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe' -Argument '-NoProfile -NonInteractive -EncodedCommand ", setup);
         Assert.Contains("'\r\n$o = New-ScheduledTaskSettingsSet -MultipleInstances Queue -ExecutionTimeLimit (New-TimeSpan -Minutes 5)\r\n", setup);
         Assert.Contains("Register-ScheduledTask -TaskName 'BackblazeMonitorAgent' -Action $a -Settings $o -User 'SYSTEM' -RunLevel Highest -Force -ErrorAction Stop | Out-Null\r\n", setup);
         Assert.Contains("$c.GetFolder('\\').GetTask('BackblazeMonitorAgent').SetSecurityDescriptor('D:(A;;FA;;;SY)(A;;FA;;;BA)(A;;GRGX;;;" + sid + ")', 0)\r\n", setup);
@@ -191,6 +196,15 @@ public class ScheduleAndCommandTests
         // the task receives the tested command
         var enc = System.Text.RegularExpressions.Regex.Match(setup, @"-EncodedCommand (\S+)'").Groups[1].Value;
         Assert.Equal(AgentCommands.GetCommand(@"C:\x\requete.txt", Bits), EncodedCommand.Decode(enc));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("S-1-5-21');Remove-Item C:\\ -Recurse;('")]
+    public void Agent_setup_gives_the_folder_to_nobody_when_the_sid_is_missing_or_odd(string sid)
+    {
+        var setup = AgentCommands.GetSetup(@"C:\x\requete.txt", Bits, sid);
+        Assert.Contains("SetSecurityDescriptorSddlForm('D:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)')\r\n", setup);
     }
 
     // ---------- Limit set elsewhere ----------

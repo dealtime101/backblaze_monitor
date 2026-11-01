@@ -147,6 +147,7 @@ public static class AgentCommands
     {
         var t = BzConstants.AgentTask;
         return "try {\r\n" +
+               GetFolderSetup(agentFile, sid) +
                $"$a = New-ScheduledTaskAction -Execute '{psHome}\\powershell.exe' -Argument '{GetArguments(agentFile, allowedBits)}'\r\n" +
                "$o = New-ScheduledTaskSettingsSet -MultipleInstances Queue -ExecutionTimeLimit (New-TimeSpan -Minutes 5)\r\n" +
                $"Register-ScheduledTask -TaskName '{t}' -Action $a -Settings $o -User 'SYSTEM' " +
@@ -154,6 +155,24 @@ public static class AgentCommands
                "$c = New-Object -ComObject Schedule.Service; $c.Connect()\r\n" +
                $"$c.GetFolder('\\').GetTask('{t}').SetSecurityDescriptor('D:(A;;FA;;;SY)(A;;FA;;;BA)(A;;GRGX;;;{sid})', 0)\r\n" +
                "} catch { }\r\n";
+    }
+
+    /// <summary>
+    /// The folder of the request file, closed to everybody but SYSTEM, the administrators and the tile's user:
+    /// the SYSTEM agent runs what that file asks for, so no other account may write in it. The ACL is
+    /// protected (no inheritance from ProgramData, where every user can create files). Without a SID the
+    /// user gets no right: the tile then falls back to the UAC prompt rather than leave the folder open.
+    /// </summary>
+    private static string GetFolderSetup(string agentFile, string sid)
+    {
+        var cut = agentFile.LastIndexOf('\\');
+        if (cut <= 0) return "";
+        var dir = EscapeSingleQuoted(agentFile.Substring(0, cut));
+        var user = sid.Length > 0 && sid.All(c => char.IsAsciiLetterOrDigit(c) || c == '-') ? $"(A;OICI;0x1301df;;;{sid})" : "";
+        return $"New-Item -ItemType Directory -Force -Path '{dir}' | Out-Null\r\n" +
+               "$ac = New-Object System.Security.AccessControl.DirectorySecurity\r\n" +
+               $"$ac.SetSecurityDescriptorSddlForm('D:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA){user}')\r\n" +
+               $"Set-Acl -LiteralPath '{dir}' -AclObject $ac\r\n";
     }
 
     /// <summary>

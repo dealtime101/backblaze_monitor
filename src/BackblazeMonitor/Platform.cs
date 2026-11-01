@@ -17,8 +17,13 @@ internal static class AppPaths
 
     public static string Volumes => Path.Combine(Dir, "volumes.txt");
 
-    /// <summary>Request file read by the SYSTEM agent.</summary>
-    public static string AgentFile => Path.Combine(Dir, "requete.txt");
+    /// <summary>
+    /// Request file read by the SYSTEM agent. Not next to the program: that folder is writable by the user
+    /// (settings, history), and the agent runs what the file asks for. This one is created with an ACL by the
+    /// agent's installation (see AgentCommands.GetSetup).
+    /// </summary>
+    public static string AgentFile { get; } = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "BackblazeMonitor", "agent", "requete.txt");
 
     public static string ErrorLog => Path.Combine(Dir, "error.log");
 
