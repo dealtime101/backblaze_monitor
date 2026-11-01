@@ -129,7 +129,7 @@ public class VolumeTests
     {
         var sm = new[] { Smp(Sec - 2 * 86400, "E", 650 * G), Smp(Sec, "E", 750 * G) };
         var txt = Lines(Vg, sm);
-        Assert.Equal("Drive    Sent          Left    Rate 7 d         ETA", txt[0]);
+        Assert.Equal("Drive     Sent        Left      Rate 7 d   ETA", txt[0]);
         Assert.Equal("E: 75.0 % 250.00 GB 50.00 GB/d done ~5 d", Squash(txt[1]));
         Assert.Equal("F: 100.0 % 0 KB — up to date", Squash(txt[2]));
         Assert.Equal("", txt[3]);
@@ -141,7 +141,13 @@ public class VolumeTests
     public void Text_columns_are_aligned()
     {
         var sm = new[] { Smp(Sec - 2 * 86400, "E", 650 * G), Smp(Sec, "E", 750 * G) };
-        Assert.Equal("E:      75.0 %   250.00 GB    50.00 GB/d   done ~5 d", Lines(Vg, sm)[1]);
+        var txt = Lines(Vg, sm);
+        Assert.Equal("E:      75.0 %   250.00 GB    50.00 GB/d   done ~5 d", txt[1]);
+        // each title sits over its column: the right-aligned ones end where the value ends, ETA starts where the text starts
+        Assert.Equal(txt[1].IndexOf('%') + 1, txt[0].IndexOf("Sent", StringComparison.Ordinal) + 4);
+        Assert.Equal(txt[1].IndexOf("GB", StringComparison.Ordinal) + 2, txt[0].IndexOf("Left", StringComparison.Ordinal) + 4);
+        Assert.Equal(txt[1].IndexOf("/d", StringComparison.Ordinal) + 2, txt[0].IndexOf("Rate 7 d", StringComparison.Ordinal) + 8);
+        Assert.Equal(txt[1].IndexOf("done", StringComparison.Ordinal), txt[0].IndexOf("ETA", StringComparison.Ordinal));
     }
 
     [Fact]

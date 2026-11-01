@@ -158,7 +158,7 @@ public static class VolumeSamples
         if (vols.Count == 0) return "Backblaze report unreadable: no disk";
         var ci = BzConstants.Invariant;
         var sec = new DateTimeOffset(now).ToUnixTimeSeconds();
-        var lines = new List<string> { "Drive    Sent          Left    Rate 7 d         ETA" };
+        var lines = new List<string> { $"{"Drive",-10}{"Sent",4}{"Left",12}{"Rate 7 d",14}   ETA" };
         foreach (var v in vols)
         {
             if (v.Selected <= 0)
