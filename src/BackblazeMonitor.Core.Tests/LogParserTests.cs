@@ -105,6 +105,33 @@ public class LogParserTests
     }
 
     [Fact]
+    public void Positions_are_in_bytes_with_multibyte_characters_before_and_after_the_cut()
+    {
+        // e-acute (2 bytes) and the typographic apostrophe (3 bytes), as in real paths
+        var first = "C:\\musique\\\u00e9t\u00e9 1\r\n";
+        var cutLine = "C:\\musique\\l\u2019\u00e9t\u00e9 en cou";
+        using var ms = new MemoryStream();
+        ms.Write(Encoding.UTF8.GetBytes(first + cutLine));
+        var r = LogReader.ReadFrom(ms, 0)!;
+        Assert.Equal(first, r.Text);
+        Assert.Equal(Encoding.UTF8.GetByteCount(first), r.Pos); // bytes, not characters
+        Assert.NotEqual(first.Length, r.Pos);
+
+        var rest = "rs\r\n";
+        ms.Seek(0, SeekOrigin.End);
+        ms.Write(Encoding.UTF8.GetBytes(rest));
+        r = LogReader.ReadFrom(ms, r.Pos)!;
+        Assert.Equal(cutLine + rest, r.Text); // the line is whole, nothing doubled or lost
+        Assert.Equal(Encoding.UTF8.GetByteCount(first + cutLine + rest), r.Pos);
+
+        // a read that ends in the middle of a multibyte character waits for its end: LF is the only cut
+        var bytes = Encoding.UTF8.GetBytes("a\n\u00e9");
+        var chunk = LogReader.ExtractCompleteLines(bytes.Take(bytes.Length - 1).ToArray(), bytes.Length - 1, 0);
+        Assert.Equal("a\n", chunk.Text);
+        Assert.Equal(2, chunk.Pos);
+    }
+
+    [Fact]
     public void Read_from_a_file_and_missing_file()
     {
         var dir = Directory.CreateTempSubdirectory("bbm-journaux").FullName;
