@@ -7,6 +7,7 @@ namespace BackblazeMonitor;
 internal static class QosReader
 {
     private const int TimeoutMs = 20_000;
+    private const int KillWaitMs = 3_000; // after a kill: a refused kill must not hold the worker for ever
 
     /// <summary>
     /// Current throttle in bits/s (0 = no policy), or <c>null</c> when it could not be read (the caller
@@ -39,11 +40,11 @@ internal static class QosReader
                     // Already gone
                 }
 
-                p.WaitForExit();
+                p.WaitForExit(KillWaitMs);
                 return null;
             }
 
-            p.WaitForExit();
+            p.WaitForExit(KillWaitMs);
             _ = err.Wait(1000);
             if (!outTask.Wait(1000)) return null;
             return p.ExitCode == 0 ? QosReadResult.Parse(outTask.Result) : null;
@@ -58,6 +59,8 @@ internal static class QosReader
 /// <summary>One ssh round trip of the vacation mode, with the key named in settings.txt.</summary>
 internal static class VacationSsh
 {
+    private const int KillWaitMs = 3_000; // as in QosReader
+
     /// <summary>
     /// Runs one remote command (<c>status</c>, <c>off</c>, <c>on &lt;hours&gt;</c>) and returns whether ssh exited
     /// with 0, plus its output (stdout and stderr) and its exit code (-1 when it did not run to the end: timeout,
@@ -90,11 +93,11 @@ internal static class VacationSsh
                     // Already gone
                 }
 
-                p.WaitForExit();
+                p.WaitForExit(KillWaitMs);
                 return (false, "timeout", -1);
             }
 
-            p.WaitForExit(); // the exit code is only valid after this
+            p.WaitForExit(KillWaitMs); // the exit code is only valid after this
             var text = ((outTask.Wait(1000) ? outTask.Result : "") + " " + (err.Wait(1000) ? err.Result : "")).Trim();
             return (p.ExitCode == 0, text, p.ExitCode);
         }
