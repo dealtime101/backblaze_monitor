@@ -201,7 +201,9 @@ public class SettingsAndBzInfoTests
     [Fact]
     public void App_identity()
     {
-        Assert.Equal("Backblaze Monitor v1.1", AppInfo.Title);
+        // the number changes with each release: only the shape of the title is pinned
+        Assert.Matches(@"^[0-9]+\.[0-9]+$", AppInfo.Version);
+        Assert.Equal($"Backblaze Monitor v{AppInfo.Version}", AppInfo.Title);
         Assert.Equal(3000, BzConstants.TickMs);
         Assert.Equal(9_000_000_000L, BzConstants.SlotTicks);
         Assert.Equal(1800, BzConstants.WindowSec);
