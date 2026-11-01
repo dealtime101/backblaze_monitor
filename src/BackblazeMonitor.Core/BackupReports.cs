@@ -178,7 +178,7 @@ public static class VolumeSamples
         }
 
         lines.Add("");
-        lines.Add("Sent = sent, or attached to a copy that is already there (0 bytes).");
+        lines.Add("Sent = uploaded, or matched to a copy already stored (0 bytes transferred).");
         lines.Add("The ETA applies to what is selected now, at the pace of the last 7 days.");
         return string.Join("\r\n", lines);
     }

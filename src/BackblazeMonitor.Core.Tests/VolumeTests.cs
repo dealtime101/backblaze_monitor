@@ -133,7 +133,7 @@ public class VolumeTests
         Assert.Equal("E: 75.0 % 250.00 GB 50.00 GB/d done ~5 d", Squash(txt[1]));
         Assert.Equal("F: 100.0 % 0 KB — up to date", Squash(txt[2]));
         Assert.Equal("", txt[3]);
-        Assert.Equal("Sent = sent, or attached to a copy that is already there (0 bytes).", txt[4]);
+        Assert.Equal("Sent = uploaded, or matched to a copy already stored (0 bytes transferred).", txt[4]);
         Assert.Equal("The ETA applies to what is selected now, at the pace of the last 7 days.", txt[5]);
     }
 
