@@ -176,6 +176,22 @@ internal sealed partial class MainForm : Form, ITrayHost
         };
 
         _lblRemain.Click += (_, _) => Guarded("progress per disk", ShowVolumes);
+        _lblRemain.Activated += (_, _) => Guarded("progress per disk", ShowVolumes);
+        // Keyboard: Enter or Space = left click (Mbps <-> MB/s), P = right click (next chart period)
+        _lblSpeed.Activated += (_, _) =>
+        {
+            _settings.ShowBits = !_settings.ShowBits;
+            SaveSettings();
+            RenderNetworkIfIdle();
+        };
+        _lblSpeed.KeyDown += (_, e) =>
+        {
+            if (e.KeyCode != Keys.P) return;
+            e.Handled = true;
+            _settings.Period = (_settings.Period + 1) % Periods.Count;
+            SaveSettings();
+            RenderNetworkIfIdle();
+        };
         _lblBzState.LinkClicked += (_, _) => Guarded("backblaze auto", SetBackblazeAuto);
         _cboLimit.SelectionChangeCommitted += (_, _) => Guarded("limit", OnLimitCommitted);
         // The mouse wheel over a drop-down list would change the limit unintentionally

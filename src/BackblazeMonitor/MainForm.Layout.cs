@@ -20,11 +20,11 @@ internal sealed partial class MainForm
     private Label _lblDetails = null!;
     private Label _lblUpdated = null!;
     private Label _lblUpIcon = null!;
-    private Label _lblSpeed = null!;
+    private ActionLabel _lblSpeed = null!;
     private Label _lblNetTag = null!;
     private GraphPanel _graph = null!;
     private Label _lblNetStats = null!;
-    private Label _lblRemain = null!;
+    private ActionLabel _lblRemain = null!;
     private ComboBox _cboLimit = null!;
     private Label _lblLimitMsg = null!;
     private LinkLabel _lblBzState = null!;
@@ -43,6 +43,20 @@ internal sealed partial class MainForm
         Size = size,
         Text = text,
         AutoSize = false,
+    };
+
+    // A label that can be reached and activated from the keyboard (see ActionLabel)
+    private static ActionLabel MakeActionLabel(Font font, Color color, Point at, Size size, string text, string accessibleName, int tabIndex) => new()
+    {
+        Font = font,
+        ForeColor = color,
+        Location = at,
+        Size = size,
+        Text = text,
+        AutoSize = false,
+        Cursor = Cursors.Hand,
+        AccessibleName = accessibleName,
+        TabIndex = tabIndex,
     };
 
     private Button MakeButton(string text, int x, int tabIndex) => new()
@@ -108,8 +122,7 @@ internal sealed partial class MainForm
 
         // Network block: arrow, rate, tag
         _lblUpIcon = MakeLabel(_style.Glyph, UiStyle.IdleIcon, new Point(14, 90), new Size(22, 22), "");
-        _lblSpeed = MakeLabel(_style.Speed, UiStyle.IdleSpeed, new Point(36, 85), new Size(140, 28), "--");
-        _lblSpeed.Cursor = Cursors.Hand;
+        _lblSpeed = MakeActionLabel(_style.Speed, UiStyle.IdleSpeed, new Point(36, 85), new Size(140, 28), "--", "Upload rate, Enter to switch Mbps and MB/s, P for the next chart period", 8);
         _lblNetTag = MakeLabel(_style.Small, UiStyle.Muted, new Point(176, 93), new Size(110, 16));
         _lblNetTag.TextAlign = ContentAlignment.MiddleRight;
 
@@ -125,9 +138,8 @@ internal sealed partial class MainForm
         };
 
         _lblNetStats = MakeLabel(_style.Small, UiStyle.Muted, new Point(14, 158), new Size(272, 16));
-        _lblRemain = MakeLabel(_style.Small, UiStyle.Muted, new Point(14, 176), new Size(272, 16));
-        _lblRemain.Cursor = Cursors.Hand;
-        tipGeneral.SetToolTip(_lblRemain, "Click: progress per disk");
+        _lblRemain = MakeActionLabel(_style.Small, UiStyle.Muted, new Point(14, 176), new Size(272, 16), "", "Remaining to upload, Enter for the progress per disk", 9);
+        tipGeneral.SetToolTip(_lblRemain, "Click or Enter: progress per disk");
 
         // Upload limit
         var lblLimit = MakeLabel(_style.Details, UiStyle.DarkGray, new Point(14, 201), new Size(42, 18), "Limit");

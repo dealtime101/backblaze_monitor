@@ -315,8 +315,8 @@ public static class NetworkTexts
     /// <summary>Tooltip help, without the current file.</summary>
     public static string GetTipHelp(int period) =>
         "Upload rate over 2 min, all threads combined - " + Periods.At(period).Tip + "\r\n" +
-        "Click: switch between Mbps and MB/s" + "\r\n" +
-        "Right-click: 30 min, 24 h, 7 d";
+        "Click or Enter: switch between Mbps and MB/s" + "\r\n" +
+        "Right-click or P: 30 min, 24 h, 7 d";
 
     /// <summary>Rate tooltip: the current file first while sending, then the help.</summary>
     public static string GetTip(NetState state, string file, string help) =>

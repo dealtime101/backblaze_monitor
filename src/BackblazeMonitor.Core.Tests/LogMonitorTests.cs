@@ -440,7 +440,7 @@ public sealed class LogMonitorTests : IDisposable
         Assert.Equal("858.3 MB over 24 h  -  average 84 kbps", NetworkTexts.GetStatsText(NetState.Ok, 1, hist, 0, 0, true));
 
         var help = NetworkTexts.GetTipHelp(0);
-        Assert.Equal("Upload rate over 2 min, all threads combined - Last 30 minutes\r\nClick: switch between Mbps and MB/s\r\nRight-click: 30 min, 24 h, 7 d", help);
+        Assert.Equal("Upload rate over 2 min, all threads combined - Last 30 minutes\r\nClick or Enter: switch between Mbps and MB/s\r\nRight-click or P: 30 min, 24 h, 7 d", help);
         Assert.Equal("Now sending: c.mkv\r\n" + help, NetworkTexts.GetTip(NetState.Ok, "c.mkv", help));
         Assert.Equal(help, NetworkTexts.GetTip(NetState.Idle, "c.mkv", help));
         Assert.Equal("hit\r\n" + help, NetworkTexts.GetChartTip(new GraphHit(1, "hit"), help, "ordinary"));
