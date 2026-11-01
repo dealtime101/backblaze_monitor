@@ -70,6 +70,15 @@ public class UiLogicTests
     public void TheDotnetHostIsNeverTheShortcutTarget(string? path, bool host) => Assert.Equal(host, StartupApproved.IsDotnetHost(path));
 
     [Fact]
+    public void TheErrorBoxPromisesToGoOnOnlyWhenTheProgramDoes()
+    {
+        Assert.Contains("will try to keep going", FatalTexts.Message(true));
+        Assert.Contains("has to close", FatalTexts.Message(false));
+        Assert.DoesNotContain("keep going", FatalTexts.Message(false));
+        Assert.EndsWith("Details were saved to error.log next to the program.", FatalTexts.Message(false));
+    }
+
+    [Fact]
     public void StartupApprovedFlagUsesTheOddByte()
     {
         Assert.False(StartupApproved.IsDisabled(null));

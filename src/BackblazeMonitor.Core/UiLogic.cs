@@ -85,6 +85,20 @@ public static class ActionNotices
     }
 }
 
+/// <summary>Text of the box shown after an unexpected error.</summary>
+public static class FatalTexts
+{
+    /// <summary>
+    /// What the box says. Only an error of the UI thread leaves the program running; an unhandled error ends
+    /// the process and a failed start ends it before any window: they must not promise to go on.
+    /// </summary>
+    public static string Message(bool recoverable) =>
+        AppInfo.Name + (recoverable
+            ? " ran into an unexpected problem and will try to keep going."
+            : " ran into an unexpected problem and has to close.") +
+        "\r\n\r\nDetails were saved to error.log next to the program.";
+}
+
 /// <summary>Texts of the small message next to the limit menu.</summary>
 public static class LimitMessages
 {

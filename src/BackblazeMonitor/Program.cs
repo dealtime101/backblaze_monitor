@@ -19,9 +19,9 @@ internal static class Program
         try
         {
             Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
-            Application.ThreadException += (_, e) => OnFatal("ui thread", e.Exception);
+            Application.ThreadException += (_, e) => OnFatal("ui thread", e.Exception, recoverable: true);
             AppDomain.CurrentDomain.UnhandledException += (_, e) =>
-                OnFatal("unhandled", e.ExceptionObject as Exception ?? new InvalidOperationException(e.ExceptionObject?.ToString()));
+                OnFatal("unhandled", e.ExceptionObject as Exception ?? new InvalidOperationException(e.ExceptionObject?.ToString()), recoverable: false);
             TaskScheduler.UnobservedTaskException += (_, e) =>
             {
                 ErrorLog.Write("task", e.Exception);
@@ -46,7 +46,7 @@ internal static class Program
         }
         catch (Exception ex)
         {
-            OnFatal("startup", ex);
+            OnFatal("startup", ex, recoverable: false);
         }
         finally
         {
@@ -62,15 +62,14 @@ internal static class Program
     }
 
     // Logs every error; shows a friendly box once, so a loop of errors cannot bury the desktop in dialogs
-    private static void OnFatal(string where, Exception ex)
+    private static void OnFatal(string where, Exception ex, bool recoverable)
     {
         ErrorLog.Write(where, ex);
         if (Interlocked.Exchange(ref _errorBoxShown, 1) != 0) return;
         try
         {
             MessageBox.Show(
-                AppInfo.Name + " ran into an unexpected problem and will try to keep going.\r\n\r\n" +
-                "Details were saved to error.log next to the program.",
+                FatalTexts.Message(recoverable),
                 AppInfo.Title,
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Warning);
