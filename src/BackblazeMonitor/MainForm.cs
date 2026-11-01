@@ -25,6 +25,7 @@ internal sealed partial class MainForm : Form, ITrayHost
     private readonly TrayController _tray;
 
     private bool _busy;          // a tick is running (its worker thread owns the monitor objects)
+    private bool _workerRunning; // BackgroundPass is running on its worker thread: the monitor collections are not readable
     private bool _acting;        // a privileged action or bzcli is running
     private bool _syncing;       // programmatic update of the limit menu
     private bool _qosReading;
@@ -244,7 +245,17 @@ internal sealed partial class MainForm : Form, ITrayHost
         _busy = true;
         try
         {
-            var pass = await Task.Run(BackgroundPass);
+            _workerRunning = true;
+            PassResult pass;
+            try
+            {
+                pass = await Task.Run(BackgroundPass);
+            }
+            finally
+            {
+                _workerRunning = false;
+            }
+
             ApplyPass(pass);
         }
         catch (Exception ex)
@@ -410,6 +421,8 @@ internal sealed partial class MainForm : Form, ITrayHost
     // block changes, otherwise the tooltip flickers.
     private void UpdateHover()
     {
+        // The worker is rewriting the points: keep the last hit, the pass applied next redraws it.
+        if (_workerRunning && _hoverX is not null) return;
         GraphHit? hit = null;
         if (_hoverX is { } x)
         {
