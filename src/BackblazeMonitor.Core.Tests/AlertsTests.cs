@@ -194,6 +194,9 @@ public class AlertsTests
     [InlineData("Manual", "Manual")]
     [InlineData("Disabled", "Disabled")]
     [InlineData("Boot", "Boot")]
+    [InlineData("SomethingNew", "SomethingNew")]
+    [InlineData("startpending", "Starting...")] // case-insensitive
+    [InlineData("", "")]
     public void Service_text_in_plain_words_unknown_as_is(string raw, string want) => Assert.Equal(want, ServiceText.Get(raw));
 
     [Fact]
