@@ -387,6 +387,16 @@ public sealed class LogMonitorTests : IDisposable
     }
 
     [Fact]
+    public void Logs_are_read_oldest_write_first_so_a_month_change_keeps_the_order()
+    {
+        WriteLog("01.log", Sent("2026-10-01 00:05:00", "new.bin") + "\r\n", "2026-10-01 00:05:00");
+        WriteLog("30.log", Sent("2026-09-30 23:50:00", "old.bin") + "\r\n", "2026-09-30 23:59:59");
+        WriteLog("31.log", Sent("2026-09-30 23:55:00", "mid.bin") + "\r\n", "2026-09-30 23:59:59"); // same mtime as 30.log: the name breaks the tie
+        var names = LogMonitor.OldestFirst(new DirectoryInfo(_logDir).GetFiles()).Select(f => f.Name);
+        Assert.Equal("30.log 31.log 01.log", string.Join(' ', names));
+    }
+
+    [Fact]
     public void Recent_set_keys_rows_and_file_names()
     {
         var s = new RecentFileSet();

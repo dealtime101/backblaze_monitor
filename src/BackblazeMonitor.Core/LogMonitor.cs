@@ -87,6 +87,13 @@ public sealed class LogMonitor
     /// <summary>Saves the slots. Returns whether it was written (the caller retries otherwise).</summary>
     public bool SaveHistory() => HistoryFile.Save(_historyPath, Logs);
 
+    /// <summary>
+    /// The read order: by last write time, the name only to break a tie. By name alone, 30.log of last month
+    /// would be read after 01.log of this one.
+    /// </summary>
+    public static IEnumerable<FileInfo> OldestFirst(IEnumerable<FileInfo> files) =>
+        files.OrderBy(f => f.LastWriteTimeUtc).ThenBy(f => f.Name, StringComparer.OrdinalIgnoreCase);
+
     /// <summary>Reads the log folder as of <paramref name="now"/> and updates every derived value.</summary>
     /// <returns>Number of characters read (a large value invites a garbage collection).</returns>
     public int Sample(DateTime now)
@@ -96,7 +103,7 @@ public sealed class LogMonitor
         {
             if (Directory.Exists(_logDir))
             {
-                foreach (var fi in new DirectoryInfo(_logDir).GetFiles().OrderBy(f => f.Name, StringComparer.OrdinalIgnoreCase))
+                foreach (var fi in OldestFirst(new DirectoryInfo(_logDir).GetFiles()))
                 {
                     files.Add(new LogFileInfo(fi.FullName, fi.LastWriteTime, fi.LastWriteTimeUtc, fi.Length));
                 }
@@ -113,7 +120,7 @@ public sealed class LogMonitor
     /// <summary>
     /// Core of the pass, with the folder listing and the reader supplied by the caller.
     /// </summary>
-    /// <param name="files">Files of the log folder, in the order they must be read (01.log before 30.log).</param>
+    /// <param name="files">Files of the log folder, in the order they must be read (oldest write first, see <see cref="OldestFirst"/>).</param>
     /// <param name="now">Current time.</param>
     /// <param name="reader">Reads a log from a position; default: <see cref="LogReader.ReadFrom(string, long)"/>.</param>
     /// <returns>Number of characters read.</returns>
