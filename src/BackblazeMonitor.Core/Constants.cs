@@ -70,21 +70,34 @@ public static class BzConstants
     public static readonly CultureInfo English = CultureInfo.GetCultureInfo("en-US");
 }
 
-/// <summary>Default locations of the Backblaze files (Windows).</summary>
+/// <summary>
+/// Locations of the Backblaze files (Windows), built from the system's ProgramData folder: it is not always
+/// on C:.
+/// </summary>
 public static class BzPaths
 {
-    public const string LogDir = @"C:\ProgramData\Backblaze\bzdata\bzlogs\bzreports_lastfilestransmitted";
-    public const string InfoPath = @"C:\ProgramData\Backblaze\bzdata\bzinfo.xml";
-    public const string RemainPath = @"C:\ProgramData\Backblaze\bzdata\bzreports\bzstat_remainingbackup.xml";
-    public const string TotalPath = @"C:\ProgramData\Backblaze\bzdata\bzreports\bzstat_totalbackup.xml";
+    private static string Data => Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
+
+    private static string BzData => Path.Combine(Data, "Backblaze", "bzdata");
+
+    public static string LogDir => Path.Combine(BzData, "bzlogs", "bzreports_lastfilestransmitted");
+
+    public static string InfoPath => Path.Combine(BzData, "bzinfo.xml");
+
+    public static string RemainPath => Path.Combine(BzData, "bzreports", "bzstat_remainingbackup.xml");
+
+    public static string TotalPath => Path.Combine(BzData, "bzreports", "bzstat_totalbackup.xml");
 
     /// <summary>
     /// Witness an external tool writes just before it stops the service on purpose (first line: the reason)
     /// and deletes before it starts it again. Absent on a machine without such a tool: then nothing changes.
     /// </summary>
-    public const string PauseWitnessPath = @"C:\ProgramData\BackblazeMonitor\arr-watch.txt";
+    public static string PauseWitnessPath => Path.Combine(Data, "BackblazeMonitor", "arr-watch.txt");
 
-    /// <summary>Default PowerShell home, used inside the generated scheduled-task commands.</summary>
+    /// <summary>
+    /// PowerShell home used when a caller does not give one (the tests). The tile itself always passes the
+    /// real one, resolved from the system folder (AppPaths.PsHome).
+    /// </summary>
     public const string DefaultPsHome = @"C:\Windows\System32\WindowsPowerShell\v1.0";
 }
 

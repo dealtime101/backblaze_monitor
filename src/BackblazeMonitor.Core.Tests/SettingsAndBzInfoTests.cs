@@ -199,6 +199,19 @@ public class SettingsAndBzInfoTests
     }
 
     [Fact]
+    public void Backblaze_paths_follow_the_system_program_data_folder()
+    {
+        var data = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
+        foreach (var p in new[] { BzPaths.LogDir, BzPaths.InfoPath, BzPaths.RemainPath, BzPaths.TotalPath, BzPaths.PauseWitnessPath })
+        {
+            Assert.StartsWith(data, p, StringComparison.Ordinal);
+        }
+
+        Assert.Equal(Path.Combine(data, "Backblaze", "bzdata", "bzinfo.xml"), BzPaths.InfoPath);
+        Assert.Equal("bzreports_lastfilestransmitted", Path.GetFileName(BzPaths.LogDir));
+    }
+
+    [Fact]
     public void App_identity()
     {
         // the number changes with each release: only the shape of the title is pinned
