@@ -178,7 +178,8 @@ internal sealed partial class MainForm
             ForeColor = UiStyle.Muted,
             LinkColor = UiStyle.LinkAmber,
             ActiveLinkColor = UiStyle.LinkAmber,
-            LinkBehavior = LinkBehavior.NeverUnderline,
+            // Underlined (only the link area, i.e. manual mode): colour alone does not tell a link (amber on white is 5.3:1)
+            LinkBehavior = LinkBehavior.AlwaysUnderline,
             AutoSize = false,
             TabStop = true,
             TabIndex = 2,
