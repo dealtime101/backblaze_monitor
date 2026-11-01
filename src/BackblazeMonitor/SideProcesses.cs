@@ -3,16 +3,62 @@ using BackblazeMonitor.Core;
 
 namespace BackblazeMonitor;
 
+/// <summary>
+/// The one way the tile runs a side process and waits for it: start, read both pipes, wait up to a limit, kill
+/// on timeout, never wait for ever. Blocking: call it from a worker thread.
+/// </summary>
+internal static class ProcessRun
+{
+    /// <summary>After a kill, or after the exit: how long to wait for the end and for the pipes. A refused kill, or a child that holds the pipes, must not hold the caller.</summary>
+    public const int KillWaitMs = 3_000;
+
+    /// <param name="TimedOut">The limit passed and the process was killed.</param>
+    /// <param name="ExitCode">Exit code; -1 when it timed out.</param>
+    public sealed record Result(bool TimedOut, int ExitCode, string Output, string Error);
+
+    /// <summary>Starts the process (stdout and stderr must be redirected in psi) and waits at most timeoutMs. Throws if it cannot start.</summary>
+    public static Result Run(ProcessStartInfo psi, int timeoutMs)
+    {
+        using var p = Process.Start(psi) ?? throw new InvalidOperationException("the process did not start");
+        var err = p.StandardError.ReadToEndAsync();
+        var outTask = p.StandardOutput.ReadToEndAsync();
+        if (!p.WaitForExit(timeoutMs))
+        {
+            Kill(p);
+            return new Result(true, -1, "", "");
+        }
+
+        p.WaitForExit(KillWaitMs); // the exit code is only valid after this
+        var output = outTask.Wait(1000) ? outTask.Result : "";
+        var error = err.Wait(1000) ? err.Result : "";
+        return new Result(false, p.ExitCode, output, error);
+    }
+
+    /// <summary>Kills the process tree and waits a little: already gone, or a refused kill, both just return.</summary>
+    public static void Kill(Process p)
+    {
+        try
+        {
+            p.Kill(entireProcessTree: true);
+        }
+        catch
+        {
+            // Already gone, or refused: the wait is bounded either way
+        }
+
+        p.WaitForExit(KillWaitMs);
+    }
+}
+
 /// <summary>Reads the QoS policy through a hidden PowerShell, off the UI thread.</summary>
 internal static class QosReader
 {
     private const int TimeoutMs = 20_000;
-    private const int KillWaitMs = 3_000; // after a kill: a refused kill must not hold the worker for ever
 
     /// <summary>
-    /// Current throttle in bits/s (0 = no policy). <c>null</c> when the output could not be understood (the
+    /// Current throttle in bits/s (0 = no policy). Null when the output could not be understood (the
     /// caller keeps what it shows). A failure to run it (no PowerShell, a script error, a timeout) throws, with
-    /// the exit code and PowerShell's error text in the message: the caller logs it once and keeps what it
+    /// the exit code and PowerShell error text in the message: the caller logs it once and keeps what it
     /// shows. Blocking: call it from a worker thread.
     /// </summary>
     public static double? Read()
@@ -25,41 +71,20 @@ internal static class QosReader
             RedirectStandardError = true,
             Arguments = "-NoProfile -NonInteractive -EncodedCommand " + EncodedCommand.Encode(QosReadResult.GetScript()),
         };
-        using var p = Process.Start(psi) ?? throw new InvalidOperationException("QoS read: PowerShell did not start");
-        var err = p.StandardError.ReadToEndAsync();
-        var outTask = p.StandardOutput.ReadToEndAsync();
-        if (!p.WaitForExit(TimeoutMs))
-        {
-            try
-            {
-                p.Kill(entireProcessTree: true);
-            }
-            catch
-            {
-                // Already gone, or refused: the wait below is bounded either way
-            }
-
-            p.WaitForExit(KillWaitMs);
-            throw new TimeoutException($"QoS read: no answer after {TimeoutMs / 1000} s");
-        }
-
-        p.WaitForExit(KillWaitMs);
-        var errText = err.Wait(1000) ? err.Result.Trim() : "";
-        if (p.ExitCode != 0) throw new InvalidOperationException($"QoS read: PowerShell exited with {p.ExitCode}. {errText}".Trim());
-        if (!outTask.Wait(1000)) return null;
-        return QosReadResult.Parse(outTask.Result);
+        var r = ProcessRun.Run(psi, TimeoutMs);
+        if (r.TimedOut) throw new TimeoutException($"QoS read: no answer after {TimeoutMs / 1000} s");
+        if (r.ExitCode != 0) throw new InvalidOperationException($"QoS read: PowerShell exited with {r.ExitCode}. {r.Error.Trim()}".Trim());
+        return QosReadResult.Parse(r.Output);
     }
 }
 
 /// <summary>One ssh round trip of the vacation mode, with the key named in settings.txt.</summary>
 internal static class VacationSsh
 {
-    private const int KillWaitMs = 3_000; // as in QosReader
-
     /// <summary>
-    /// Runs one remote command (<c>status</c>, <c>off</c>, <c>on &lt;hours&gt;</c>) and returns whether ssh exited
+    /// Runs one remote command (status, off, on hours) and returns whether ssh exited
     /// with 0, plus its output (stdout and stderr) and its exit code (-1 when it did not run to the end: timeout,
-    /// ssh missing). Cut after <see cref="Vacation.TimeoutMs"/>. Blocking: call it from a worker thread.
+    /// ssh missing). Cut after Vacation.TimeoutMs. Blocking: call it from a worker thread.
     /// </summary>
     public static (bool Ok, string Text, int ExitCode) Run(string host, string key, string command)
     {
@@ -75,28 +100,9 @@ internal static class VacationSsh
                 RedirectStandardError = true,
             };
             foreach (var a in Vacation.SshArguments(host, key, command)) psi.ArgumentList.Add(a);
-            using var p = Process.Start(psi);
-            if (p is null) return (false, "", -1);
-            var err = p.StandardError.ReadToEndAsync();
-            var outTask = p.StandardOutput.ReadToEndAsync();
-            if (!p.WaitForExit(Vacation.TimeoutMs))
-            {
-                try
-                {
-                    p.Kill(entireProcessTree: true);
-                }
-                catch
-                {
-                    // Already gone
-                }
-
-                p.WaitForExit(KillWaitMs);
-                return (false, "timeout", -1);
-            }
-
-            p.WaitForExit(KillWaitMs); // the exit code is only valid after this
-            var text = ((outTask.Wait(1000) ? outTask.Result : "") + " " + (err.Wait(1000) ? err.Result : "")).Trim();
-            return (p.ExitCode == 0, text, p.ExitCode);
+            var r = ProcessRun.Run(psi, Vacation.TimeoutMs);
+            if (r.TimedOut) return (false, "timeout", -1);
+            return (r.ExitCode == 0, (r.Output + " " + r.Error).Trim(), r.ExitCode);
         }
         catch (Exception ex)
         {
@@ -109,7 +115,6 @@ internal static class VacationSsh
 internal static class BzCli
 {
     private const int TimeoutMs = 30_000; // as the script: bzcli configure takes a second or two
-    private const int KillWaitMs = 3_000;
 
     /// <summary>Whether bzcli.exe is installed.</summary>
     public static bool Exists() => File.Exists(AppPaths.BzCli);
@@ -141,23 +146,13 @@ internal static class BzCli
             p.BeginErrorReadLine();
             if (!UiWait.Until(() => p.HasExited, TimeoutMs))
             {
-                try
-                {
-                    p.Kill(entireProcessTree: true);
-                }
-                catch
-                {
-                    // Already gone
-                }
-
-                // Bounded: a child that inherited the pipes would keep a plain WaitForExit() from ever returning,
-                // on the UI thread
-                p.WaitForExit(KillWaitMs);
+                // Bounded: a child that inherited the pipes would keep a plain WaitForExit() from ever returning
+                ProcessRun.Kill(p);
                 return BzAutoOutcome.TimedOut;
             }
 
             // The process has exited; the pipes may still be held by a child: the exit code is valid now
-            p.WaitForExit(KillWaitMs);
+            p.WaitForExit(ProcessRun.KillWaitMs);
             return p.ExitCode == 0 ? BzAutoOutcome.Done : BzAutoOutcome.Failed;
         }
         catch
