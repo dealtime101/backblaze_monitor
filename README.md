@@ -38,7 +38,7 @@ Both are off unless you set them up; most people never need them.
 - **Pause witness.** A tool of yours that stops `bzserv` on purpose can write `C:\ProgramData\BackblazeMonitor\arr-watch.txt` just before (reason on the first line) and delete it before it starts the service again. While it exists, the tile shows an orange "Paused (arr-watch)" with the reason, and no "Backblaze stopped" alert rings.
 - **Vacation mode.** Over `ssh`, the tile can ask another machine to hold off that tool for 1 h to 14 days (tray menu, and a "Start + vacation 48 h" button in the Start box). Add two lines to `settings.txt`:
 
-  ```
+  ```ini
   VacationHost=my-host
   VacationKey=C:\Users\me\.ssh\my_key
   ```
