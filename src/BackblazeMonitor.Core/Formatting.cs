@@ -78,14 +78,27 @@ public static class Formatting
     /// <summary>Tray tooltip: "Backblaze: status\nspeed", capped at TrayTextMax characters (NotifyIcon throws beyond).</summary>
     public static string GetTrayText(string status, string speed, string? vacation = null)
     {
-        var t = $"Backblaze: {status}\n{speed}";
-        if (!string.IsNullOrEmpty(vacation)) t += $"\nVacation: {vacation}";
-        return CapTrayText(t);
+        var tail = $"\n{speed}";
+        if (!string.IsNullOrEmpty(vacation)) tail += $"\nVacation: {vacation}";
+        // A status too long for the room is the line that gives way, with an ellipsis: the rate and the vacation
+        // lines below it stay whole
+        const string head = "Backblaze: ";
+        var room = BzConstants.TrayTextMax - head.Length - tail.Length;
+        if (room >= 1 && status.Length > room) status = CutAtCharacter(status, room - 1) + "\u2026";
+        return CapTrayText(head + status + tail);
     }
 
-    /// <summary>The text cut to what NotifyIcon.Text accepts (it throws beyond).</summary>
+    /// <summary>The text cut to what NotifyIcon.Text accepts (it throws beyond), never between the two halves of a surrogate pair.</summary>
     public static string CapTrayText(string t) =>
-        t.Length > BzConstants.TrayTextMax ? t.Substring(0, BzConstants.TrayTextMax) : t;
+        t.Length > BzConstants.TrayTextMax ? CutAtCharacter(t, BzConstants.TrayTextMax) : t;
+
+    // The first length characters, one fewer when the cut would leave half of a surrogate pair
+    private static string CutAtCharacter(string t, int length)
+    {
+        if (length <= 0) return "";
+        if (length < t.Length && char.IsHighSurrogate(t[length - 1])) length--;
+        return t.Substring(0, length);
+    }
 
     /// <summary>"HH:mm" for today, "ddd d, HH:mm" (English) for another day: recent-files list.</summary>
     public static string FormatWhen(DateTime value, DateTime today)

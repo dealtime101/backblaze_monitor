@@ -93,6 +93,29 @@ public class FormattingTests
         Assert.Equal("Remaining 4.8 MB - 189,379 files", Formatting.GetRemainingText(5_000_000, 189379, 0, Now));
 
     // ---------- Notification area ----------
+    [Fact]
+    public void A_long_status_gives_way_with_an_ellipsis_and_keeps_the_rate_and_vacation_lines()
+    {
+        var t = Formatting.GetTrayText(new string('s', 300), "999.9 Mbps", "335h59m");
+        Assert.True(t.Length <= BzConstants.TrayTextMax);
+        Assert.EndsWith("\n999.9 Mbps\nVacation: 335h59m", t);
+        Assert.Contains("\u2026\n", t);
+        Assert.StartsWith("Backblaze: sss", t);
+        // a short status is left alone
+        Assert.Equal("Backblaze: Running\n5 MB/s", Formatting.GetTrayText("Running", "5 MB/s"));
+    }
+
+    [Fact]
+    public void The_cut_never_splits_a_surrogate_pair()
+    {
+        var emoji = "\U0001F4A5"; // two UTF-16 units
+        var t = Formatting.CapTrayText(new string('a', BzConstants.TrayTextMax - 1) + emoji + "tail");
+        Assert.Equal(BzConstants.TrayTextMax - 1, t.Length); // the pair is dropped whole, not cut in two
+        Assert.DoesNotContain(t, char.IsHighSurrogate);
+        var status = Formatting.GetTrayText(new string('a', 118) + emoji + emoji, "1 Mbps");
+        for (var i = 0; i < status.Length; i++) if (char.IsHighSurrogate(status[i])) Assert.True(i + 1 < status.Length && char.IsLowSurrogate(status[i + 1]));
+    }
+
     [Theory]
     [InlineData("12.3 Mbps")]
     [InlineData("5 MB/s")]
