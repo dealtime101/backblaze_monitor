@@ -117,6 +117,7 @@ public class VacationTests
     [Theory]
     [InlineData("homepage.example", @"C:\k", true)]
     [InlineData("user@10.0.0.2", @"C:\Users\Zoé\.ssh\k", true)]
+    [InlineData("host", @"C:\Users\First Last\.ssh\k", true)] // a profile name with a space is common
     [InlineData("", @"C:\k", false)]
     [InlineData("host", "", false)]
     [InlineData(null, null, false)]
