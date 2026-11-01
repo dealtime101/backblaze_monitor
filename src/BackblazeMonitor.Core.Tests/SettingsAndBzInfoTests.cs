@@ -75,6 +75,31 @@ public class SettingsAndBzInfoTests
     }
 
     [Fact]
+    public void A_settings_write_that_fails_leaves_the_previous_file_whole()
+    {
+        var dir = Directory.CreateTempSubdirectory("bbm-settings-atomic").FullName;
+        try
+        {
+            var path = Path.Combine(dir, "settings.txt");
+            var s = new Settings { Period = 1, VacationHost = "nas", VacationKey = "C:\\k" };
+            Assert.True(s.Save(path));
+            var before = File.ReadAllText(path);
+            Directory.CreateDirectory(path + ".tmp"); // the temp name is taken: the write cannot happen
+            s.Period = 2;
+            Assert.False(s.Save(path));
+            Assert.Equal(before, File.ReadAllText(path)); // not truncated, not half-written
+            Directory.Delete(path + ".tmp");
+            Assert.True(s.Save(path));
+            Assert.Equal(2, Settings.Load(path).Period);
+            Assert.False(File.Exists(path + ".tmp"));
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
+    }
+
+    [Fact]
     public void An_unreadable_settings_file_is_not_overwritten_and_keeps_the_hand_typed_keys()
     {
         var dir = Directory.CreateTempSubdirectory("bbm-settings-locked").FullName;

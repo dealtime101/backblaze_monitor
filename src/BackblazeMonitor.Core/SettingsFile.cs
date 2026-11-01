@@ -132,7 +132,7 @@ public sealed class Settings
         {
             // UTF-8 without BOM: the same bytes as ASCII for the plain keys, and a key path with an accent
             // (a user profile name) survives the round trip
-            File.WriteAllText(path, ToFileText(), new UTF8Encoding(false));
+            AtomicFile.WriteAllText(path, ToFileText(), new UTF8Encoding(false)); // temp file then replace: a cut leaves the old file whole
             return true;
         }
         catch (Exception ex)
