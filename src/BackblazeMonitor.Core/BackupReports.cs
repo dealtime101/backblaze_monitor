@@ -270,24 +270,29 @@ public sealed class VolumeSampleStore
     }
 
     /// <summary>
-    /// Records a sample per disk (no more than one per disk per hour) and saves. No disk: nothing happens.
-    /// Returns whether the file was written; a failed save is retried at the next record.
+    /// Records a sample per disk (no more than one per disk per hour) and saves when the samples changed. No
+    /// disk: nothing happens. A failed save is retried at the next record.
     /// </summary>
-    public bool Record(IReadOnlyList<VolumeInfo> vols, long nowSec)
+    public VolumeRecord Record(IReadOnlyList<VolumeInfo> vols, long nowSec)
     {
-        if (vols.Count == 0) return false;
+        if (vols.Count == 0) return VolumeRecord.Unchanged;
         if (_loadFailed) Reload();
-        Samples = VolumeSamples.Add(Samples, vols, nowSec);
+        var next = VolumeSamples.Add(Samples, vols, nowSec);
+        var changed = !next.SequenceEqual(Samples);
+        Samples = next;
         if (_loadFailed)
         {
             Pending = true;
-            return false;
+            return VolumeRecord.Failed;
         }
+
+        // Within the hour nothing is added: no write (unless one is still waiting)
+        if (!changed && !Pending) return VolumeRecord.Unchanged;
 
         // The flag stays up until a write succeeds: Record only runs when the report changes (about hourly),
         // so without it a failed write would never be retried (BAC466.35)
         Pending = !VolumeSamples.Save(_path, Samples);
-        return !Pending;
+        return Pending ? VolumeRecord.Failed : VolumeRecord.Written;
     }
 
     /// <summary>A save failed and has not been retried successfully yet.</summary>
@@ -300,6 +305,19 @@ public sealed class VolumeSampleStore
         if (_loadFailed) Reload();
         if (!_loadFailed) Pending = !VolumeSamples.Save(_path, Samples);
     }
+}
+
+/// <summary>Outcome of a <see cref="VolumeSampleStore.Record"/> call.</summary>
+public enum VolumeRecord
+{
+    /// <summary>No sample added (none due, or no disk): the file was not touched.</summary>
+    Unchanged,
+
+    /// <summary>The samples changed and the file was written.</summary>
+    Written,
+
+    /// <summary>The file could not be written (or read first): retried later.</summary>
+    Failed,
 }
 
 /// <summary>Outcome of a <see cref="RemainingTracker.Refresh"/> pass.</summary>

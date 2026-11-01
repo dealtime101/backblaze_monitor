@@ -216,7 +216,7 @@ public class VolumeTests
             var later = Path.Combine(dir, "later");
             var path = Path.Combine(later, "volumes.txt");
             var store = new VolumeSampleStore(path);
-            Assert.False(store.Record(V, T0)); // folder missing: not written
+            Assert.Equal(VolumeRecord.Failed, store.Record(V, T0)); // folder missing: not written
             Assert.True(store.Pending);
             store.RetryPending();
             Assert.True(store.Pending); // still failing
@@ -244,9 +244,12 @@ public class VolumeTests
             var store = new VolumeSampleStore(path);
             store.Load();
             Assert.Empty(store.Samples);
-            Assert.False(store.Record(Array.Empty<VolumeInfo>(), T0));
-            Assert.True(store.Record(V, T0));
-            Assert.True(store.Record(V, T0 + 10));
+            Assert.Equal(VolumeRecord.Unchanged, store.Record(Array.Empty<VolumeInfo>(), T0));
+            Assert.Equal(VolumeRecord.Written, store.Record(V, T0));
+            var stamp = new DateTime(2001, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            File.SetLastWriteTimeUtc(path, stamp);
+            Assert.Equal(VolumeRecord.Unchanged, store.Record(V, T0 + 10)); // nothing due within the hour: no write
+            Assert.Equal(stamp, File.GetLastWriteTimeUtc(path));
             Assert.Equal(2, store.Samples.Count);
             var again = new VolumeSampleStore(path);
             again.Load();
@@ -269,7 +272,7 @@ public class VolumeTests
             Assert.Null(VolumeSamples.TryRead(path));
             var store = new VolumeSampleStore(path);
             store.Load();
-            Assert.False(store.Record(new[] { new VolumeInfo("E", 1000, 100) }, T0 + 5000));
+            Assert.Equal(VolumeRecord.Failed, store.Record(new[] { new VolumeInfo("E", 1000, 100) }, T0 + 5000));
             Assert.True(store.Pending);
             Assert.True(Directory.Exists(path)); // nothing written over it
 
