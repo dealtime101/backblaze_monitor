@@ -91,7 +91,9 @@ public class HistoryAndGraphTests
             Assert.Equal(new[] { "25.log 639000000000000000 5000", "25.log 639000009000000000 1234.5" }, File.ReadAllLines(path));
 
             var back = HistoryFile.Read(path, dir);
-            var b = Assert.Single(back).Value;
+            var entry = Assert.Single(back);
+            Assert.Equal(Path.Combine(dir, "25.log"), entry.Key, ignoreCase: true); // re-attached to the right .log
+            var b = entry.Value;
             Assert.Equal(5000, b.Slots[639000000000000000L]);
             Assert.Equal(1234.5, b.Slots[639000009000000000L]);
             Assert.Null(b.Stamp);
