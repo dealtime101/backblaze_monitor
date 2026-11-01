@@ -194,10 +194,10 @@ public static class ServiceText
         return v;
     }
 
-    /// <summary>Kind of a service state; <c>null</c> = the service does not exist.</summary>
+    /// <summary>Kind of a service state; <c>null</c> or empty = the service does not exist (the alert tracker says "").</summary>
     public static ServiceStatusKind Classify(string? status)
     {
-        if (status is null) return ServiceStatusKind.NotFound;
+        if (string.IsNullOrEmpty(status)) return ServiceStatusKind.NotFound;
         if (status == "Running") return ServiceStatusKind.Running;
         if (status == "Stopped") return ServiceStatusKind.Stopped;
         if (status == "Paused") return ServiceStatusKind.Paused;

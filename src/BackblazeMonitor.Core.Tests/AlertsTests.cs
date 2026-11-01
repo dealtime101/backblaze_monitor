@@ -201,6 +201,8 @@ public class AlertsTests
     {
         Assert.Equal("Service not found", ServiceText.GetStatusText(null));
         Assert.Equal(ServiceStatusKind.NotFound, ServiceText.Classify(null));
+        Assert.Equal(ServiceStatusKind.NotFound, ServiceText.Classify("")); // the alert tracker's word for "absent"
+        Assert.Equal("Service not found", ServiceText.GetStatusText(""));
         Assert.Equal(ServiceStatusKind.Running, ServiceText.Classify("Running"));
         Assert.Equal(ServiceStatusKind.Stopped, ServiceText.Classify("Stopped"));
         Assert.Equal(ServiceStatusKind.Transitional, ServiceText.Classify("StartPending"));
