@@ -67,10 +67,10 @@ public class VacationTests
     {
         Assert.Equal("Backblaze: Running\n5 MB/s", Formatting.GetTrayText("Running", "5 MB/s", null));
         Assert.Equal("Backblaze: Running\n5 MB/s\nVacation: 47h02m", Formatting.GetTrayText("Running", "5 MB/s", "47h02m"));
-        Assert.Equal(63, Formatting.GetTrayText("Running", "5 MB/s", new string('x', 80)).Length);
+        Assert.Equal(BzConstants.TrayTextMax, Formatting.GetTrayText("Running", "5 MB/s", new string('x', 200)).Length);
     }
 
-    // BAC466.15: the cut at 63 characters must not eat the vacation line for the REAL texts (states x rates up to
+    // BAC466.15: the cut at TrayTextMax characters must not eat the vacation line for the REAL texts (states x rates up to
     // 999.9 Mbps x durations up to 335h59m); a new, longer state will turn this guard red
     [Fact]
     public void Tray_cut_never_eats_the_vacation_line_for_real_texts()

@@ -60,8 +60,8 @@ public static class BzConstants
     /// <summary>Name of the on-demand SYSTEM task that runs the tile's requests.</summary>
     public const string AgentTask = "BackblazeMonitorAgent";
 
-    /// <summary>Largest tray tooltip accepted by NotifyIcon.</summary>
-    public const int TrayTextMax = 63;
+    /// <summary>Largest tray tooltip accepted by NotifyIcon: 127 characters since .NET Core 3 (it was 63 on .NET Framework).</summary>
+    public const int TrayTextMax = 127;
 
     /// <summary>The culture used for every formatted number and day name.</summary>
     public static readonly CultureInfo Invariant = CultureInfo.InvariantCulture;

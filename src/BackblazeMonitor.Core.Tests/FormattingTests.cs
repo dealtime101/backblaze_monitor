@@ -83,10 +83,10 @@ public class FormattingTests
         Assert.Equal("Backblaze: Running\n12.3 Mbps", Formatting.GetTrayText("Running", "12.3 Mbps"));
 
     [Fact]
-    public void Tray_tooltip_capped_at_63_characters()
+    public void Tray_tooltip_capped_at_the_NotifyIcon_limit()
     {
-        Assert.Equal(63, Formatting.GetTrayText(new string('x', 80), "1.0 Mbps").Length);
-        Assert.Equal(63, Formatting.CapTrayText(new string('y', 500)).Length); // what the tray controller applies to any text
+        Assert.Equal(BzConstants.TrayTextMax, Formatting.GetTrayText(new string('x', 200), "1.0 Mbps").Length);
+        Assert.Equal(BzConstants.TrayTextMax, Formatting.CapTrayText(new string('y', 500)).Length); // what the tray controller applies to any text
         Assert.Equal("short", Formatting.CapTrayText("short"));
     }
 
@@ -95,8 +95,8 @@ public class FormattingTests
         Assert.Equal("Backblaze: Running\n5 MB/s", Formatting.GetTrayText("Running", "5 MB/s"));
 
     [Fact]
-    public void Tray_tooltip_never_more_than_63_characters() =>
-        Assert.Equal(63, Formatting.GetTrayText(new string('x', 80), "5 MB/s").Length);
+    public void Tray_tooltip_never_more_than_the_limit() =>
+        Assert.Equal(BzConstants.TrayTextMax, Formatting.GetTrayText(new string('x', 200), "5 MB/s").Length);
 
     // ---------- Rates and sizes ----------
     [Theory]

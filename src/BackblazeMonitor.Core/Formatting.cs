@@ -72,7 +72,7 @@ public static class Formatting
         return t;
     }
 
-    /// <summary>Tray tooltip: "Backblaze: status\nspeed", capped at 63 characters (NotifyIcon throws beyond).</summary>
+    /// <summary>Tray tooltip: "Backblaze: status\nspeed", capped at TrayTextMax characters (NotifyIcon throws beyond).</summary>
     public static string GetTrayText(string status, string speed, string? vacation = null)
     {
         var t = $"Backblaze: {status}\n{speed}";
