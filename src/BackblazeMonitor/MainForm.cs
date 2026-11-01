@@ -782,8 +782,8 @@ internal sealed partial class MainForm : Form, ITrayHost
         try
         {
             var (host, key) = (_settings.VacationHost, _settings.VacationKey);
-            var (ok, text) = await Task.Run(() => VacationSsh.Run(host, key, "status"));
-            _vac = Vacation.FromStatusCall(ok, text);
+            var (ok, text, code) = await Task.Run(() => VacationSsh.Run(host, key, "status"));
+            _vac = Vacation.FromStatusCall(ok, text, code);
             _tray.UpdateVacation();
         }
         catch (Exception ex)

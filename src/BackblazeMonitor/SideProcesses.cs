@@ -60,10 +60,10 @@ internal static class VacationSsh
 {
     /// <summary>
     /// Runs one remote command (<c>status</c>, <c>off</c>, <c>on &lt;hours&gt;</c>) and returns whether ssh exited
-    /// with 0, plus its output (stdout and stderr). Cut after <see cref="Vacation.TimeoutMs"/>. Blocking: call
-    /// it from a worker thread.
+    /// with 0, plus its output (stdout and stderr) and its exit code (-1 when it did not run to the end: timeout,
+    /// ssh missing). Cut after <see cref="Vacation.TimeoutMs"/>. Blocking: call it from a worker thread.
     /// </summary>
-    public static (bool Ok, string Text) Run(string host, string key, string command)
+    public static (bool Ok, string Text, int ExitCode) Run(string host, string key, string command)
     {
         try
         {
@@ -76,7 +76,7 @@ internal static class VacationSsh
             };
             foreach (var a in Vacation.SshArguments(host, key, command)) psi.ArgumentList.Add(a);
             using var p = Process.Start(psi);
-            if (p is null) return (false, "");
+            if (p is null) return (false, "", -1);
             var err = p.StandardError.ReadToEndAsync();
             var outTask = p.StandardOutput.ReadToEndAsync();
             if (!p.WaitForExit(Vacation.TimeoutMs))
@@ -91,16 +91,16 @@ internal static class VacationSsh
                 }
 
                 p.WaitForExit();
-                return (false, "timeout");
+                return (false, "timeout", -1);
             }
 
             p.WaitForExit(); // the exit code is only valid after this
             var text = ((outTask.Wait(1000) ? outTask.Result : "") + " " + (err.Wait(1000) ? err.Result : "")).Trim();
-            return (p.ExitCode == 0, text);
+            return (p.ExitCode == 0, text, p.ExitCode);
         }
         catch (Exception ex)
         {
-            return (false, ex.Message);
+            return (false, ex.Message, -1);
         }
     }
 }

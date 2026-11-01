@@ -72,8 +72,18 @@ public static class Vacation
         return VacationState.Unreadable;
     }
 
-    /// <summary>State after a <c>status</c> call: the output when it succeeded, "unreachable" otherwise.</summary>
-    public static VacationState FromStatusCall(bool ok, string output) => ok ? ParseState(output) : VacationState.Unreachable;
+    /// <summary>ssh's own exit code when it cannot connect or authenticate (the remote script never ran).</summary>
+    public const int SshConnectionFailed = 255;
+
+    /// <summary>
+    /// State after a <c>status</c> call: the output when it succeeded; "unreachable" when ssh did not get through
+    /// (no connection, refused key, timeout, ssh missing: <paramref name="exitCode"/> 255 or -1); "remote error"
+    /// when the host answered and the remote script failed (any other exit code).
+    /// </summary>
+    public static VacationState FromStatusCall(bool ok, string output, int exitCode = -1) =>
+        ok ? ParseState(output)
+        : exitCode is -1 or SshConnectionFailed ? VacationState.Unreachable
+        : VacationState.RemoteError;
 
     /// <summary>Text of the tray menu entry, from the last known state.</summary>
     public static string MenuText(VacationState? state) => "Vacation mode: " + (state?.Text ?? "?");
@@ -101,11 +111,14 @@ public static class Vacation
 
 /// <summary>Last known state of the vacation mode.</summary>
 /// <param name="Active">A hold is in place.</param>
-/// <param name="Text">Time left when active, otherwise "none", "expired", "unreadable" or "unreachable".</param>
+/// <param name="Text">Time left when active, otherwise "none", "expired", "unreadable", "unreachable" or "remote error".</param>
 /// <param name="Unknown">The state could not be read: a hold may be in place.</param>
 public sealed record VacationState(bool Active, string Text, bool Unknown)
 {
     public static readonly VacationState Unreadable = new(false, "unreadable", true);
 
     public static readonly VacationState Unreachable = new(false, "unreachable", true);
+
+    /// <summary>The host answered, but the remote script exited with an error.</summary>
+    public static readonly VacationState RemoteError = new(false, "remote error", true);
 }

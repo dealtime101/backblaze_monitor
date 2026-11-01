@@ -26,6 +26,13 @@ public class VacationTests
     public void A_failed_call_is_unreachable_whatever_it_printed()
     {
         Assert.Equal(VacationState.Unreachable, Vacation.FromStatusCall(false, "hold: ACTIF (1h restantes)"));
+        Assert.Equal(VacationState.Unreachable, Vacation.FromStatusCall(false, "Permission denied (publickey).", 255)); // ssh could not get through
+        Assert.Equal(VacationState.Unreachable, Vacation.FromStatusCall(false, "timeout", -1));
+        // the host answered and its script failed: not a network problem
+        var remote = Vacation.FromStatusCall(false, "bash: status: command not found", 127);
+        Assert.Equal(VacationState.RemoteError, remote);
+        Assert.True(remote.Unknown); // a hold may be in place: Stop stays offered
+        Assert.Equal("Vacation mode: remote error", Vacation.MenuText(remote));
         Assert.Equal("47h02m", Vacation.FromStatusCall(true, "hold: ACTIF (47h02m restantes)").Text);
     }
 
