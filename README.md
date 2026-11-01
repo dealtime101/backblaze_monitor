@@ -62,7 +62,7 @@ dotnet publish src/BackblazeMonitor/BackblazeMonitor.csproj -c Release -o publis
 
 ## Support
 
-Questions or bugs: **support@dealtimeworlds.com**.
+Questions or bugs: **<support@dealtimeworlds.com>**.
 
 ## License
 
