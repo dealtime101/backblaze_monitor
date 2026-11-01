@@ -84,22 +84,50 @@ public sealed class Settings
     /// <summary>The text of settings.txt: lines each ended by CR LF.</summary>
     public string ToFileText() => string.Concat(ToLines().Select(l => l + "\r\n"));
 
-    /// <summary>Loads settings.txt; missing or unreadable gives the defaults.</summary>
+    /// <summary>
+    /// The file exists but could not be read (locked for a moment by an antivirus or a sync): these are the
+    /// defaults, and saving them over the file would erase what was typed by hand. <see cref="Save"/> reads the
+    /// file again first and does not write until it can.
+    /// </summary>
+    public bool LoadFailed { get; private set; }
+
+    /// <summary>Loads settings.txt; missing gives the defaults, unreadable gives them with <see cref="LoadFailed"/>.</summary>
     public static Settings Load(string path)
     {
         try
         {
             return File.Exists(path) ? Parse(File.ReadAllText(path)) : new Settings();
         }
-        catch
+        catch (Exception ex)
         {
-            return new Settings();
+            ReadFailures.Report(path, ex);
+            return new Settings { LoadFailed = true };
         }
     }
 
-    /// <summary>Writes settings.txt (ASCII). Returns whether it was written.</summary>
+    /// <summary>
+    /// Writes settings.txt (ASCII). Returns whether it was written. After a failed load it first reads the file
+    /// again: the hand-edited keys (vacation) are taken from it when they are empty here, and nothing is written
+    /// while it cannot be read.
+    /// </summary>
     public bool Save(string path)
     {
+        if (LoadFailed)
+        {
+            try
+            {
+                var disk = Parse(File.Exists(path) ? File.ReadAllText(path) : "");
+                if (VacationHost.Length == 0) VacationHost = disk.VacationHost;
+                if (VacationKey.Length == 0) VacationKey = disk.VacationKey;
+                LoadFailed = false;
+            }
+            catch (Exception ex)
+            {
+                ReadFailures.Report(path, ex);
+                return false;
+            }
+        }
+
         try
         {
             // UTF-8 without BOM: the same bytes as ASCII for the plain keys, and a key path with an accent
@@ -107,8 +135,9 @@ public sealed class Settings
             File.WriteAllText(path, ToFileText(), new UTF8Encoding(false));
             return true;
         }
-        catch
+        catch (Exception ex)
         {
+            ReadFailures.Report(path, ex, reading: false);
             return false;
         }
     }

@@ -74,6 +74,37 @@ public class SettingsAndBzInfoTests
         }
     }
 
+    [Fact]
+    public void An_unreadable_settings_file_is_not_overwritten_and_keeps_the_hand_typed_keys()
+    {
+        var dir = Directory.CreateTempSubdirectory("bbm-settings-locked").FullName;
+        try
+        {
+            var path = Path.Combine(dir, "settings.txt");
+            File.WriteAllText(path, "VacationHost=nas\r\nVacationKey=C:\\k\r\n");
+            Settings s;
+            using (new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None)) // held by someone else
+            {
+                s = Settings.Load(path);
+                Assert.True(s.LoadFailed);
+                s.Period = 1;
+                Assert.False(s.Save(path)); // still unreadable: nothing is written over it
+            }
+
+            Assert.Contains("VacationHost=nas", File.ReadAllText(path));
+            Assert.True(s.Save(path)); // readable again: the typed keys are taken from the file, then written back
+            Assert.False(s.LoadFailed);
+            var back = Settings.Load(path);
+            Assert.Equal("nas", back.VacationHost);
+            Assert.Equal("C:\\k", back.VacationKey);
+            Assert.Equal(1, back.Period);
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
+    }
+
     // ---------- bzinfo.xml ----------
     // BAC466.33: read in the middle of a rewrite (no closing tag): nothing moves, the stamp is not kept
     [Fact]
