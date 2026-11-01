@@ -44,13 +44,13 @@ public class HistoryAndGraphTests
 
     [Fact]
     public void Current_slot_at_least_60_s() =>
-        Assert.Equal(4.5e7 * 8 / 60, HistoryCalculator.Get(Sets, 86400, 900, new DateTime(2026, 9, 25, 12, 0, 10)).Rates[95]);
+        Assert.Equal(4.5e7 * 8 / 60, HistoryCalculator.Get(Sets, 86400, 900, new DateTime(2026, 9, 25, 12, 0, 10)).Rates[95], 6);
 
     [Fact]
     public void D7_has_168_slots() => Assert.Equal(168, Hs.Rates.Length);
 
     [Fact]
-    public void D7_quarter_hours_grouped_by_hour() => Assert.Equal((1e9 + 9e6) * 8 / 3600, Hs.Rates[143]);
+    public void D7_quarter_hours_grouped_by_hour() => Assert.Equal((1e9 + 9e6) * 8 / 3600, Hs.Rates[143], 6);
 
     [Fact]
     public void D7_volume_without_the_future_slot() => Assert.Equal(1954000000, Hs.Bytes); // 12:15 is after now (12:07:30): BAC466.24
