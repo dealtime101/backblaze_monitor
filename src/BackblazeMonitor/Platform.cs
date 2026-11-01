@@ -27,8 +27,19 @@ internal static class AppPaths
 
     public static string ErrorLog => Path.Combine(Dir, "error.log");
 
-    public static string BzCli => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "Backblaze", "bzcli.exe");
+    /// <summary>
+    /// bzcli.exe: the 64-bit install (Program Files) or the 32-bit one (Program Files (x86), where older clients
+    /// live), whichever exists; the 64-bit path when neither does.
+    /// </summary>
+    public static string BzCli => FindBzCli();
+
+    private static string FindBzCli()
+    {
+        string Candidate(Environment.SpecialFolder f) => Path.Combine(Environment.GetFolderPath(f), "Backblaze", "bzcli.exe");
+        var x64 = Candidate(Environment.SpecialFolder.ProgramFiles);
+        var x86 = Candidate(Environment.SpecialFolder.ProgramFilesX86);
+        return !File.Exists(x64) && File.Exists(x86) ? x86 : x64;
+    }
 
     /// <summary>Windows PowerShell home folder.</summary>
     public static string PsHome => Path.Combine(Environment.SystemDirectory, "WindowsPowerShell", "v1.0");
