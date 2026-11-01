@@ -53,9 +53,13 @@ public static class HistoryCalculator
     /// <param name="slotSets">Tables {start in ticks to bytes}, one per log.</param>
     public static HistoryResult Get(IEnumerable<IReadOnlyDictionary<long, double>> slotSets, int span, int step, DateTime now)
     {
+        // The live 30-minute curve has span 0 and step 0 and does not come through here
+        if (span <= 0) throw new ArgumentOutOfRangeException(nameof(span), span, "The span must be positive.");
+        if (step <= 0) throw new ArgumentOutOfRangeException(nameof(step), step, "The step must be positive.");
         var stepT = (long)step * 10_000_000L;
         var cur = now.Ticks - (now.Ticks % stepT);
-        var n = (int)Math.Round((double)span / step, MidpointRounding.ToEven);
+        // At least one slot: a span under half a step would round to none, and rates[n - 1] would not exist
+        var n = Math.Max(1, (int)Math.Round((double)span / step, MidpointRounding.ToEven));
         var first = cur - (n - 1) * stepT;
         var bytes = new double[n];
         var total = 0.0;

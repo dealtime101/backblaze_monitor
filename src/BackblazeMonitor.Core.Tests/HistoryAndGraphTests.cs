@@ -56,6 +56,15 @@ public class HistoryAndGraphTests
     public void D7_volume_without_the_future_slot() => Assert.Equal(1954000000, Hs.Bytes); // 12:15 is after now (12:07:30): BAC466.24
 
     [Fact]
+    public void A_span_shorter_than_half_a_step_still_gives_one_slot()
+    {
+        var h = HistoryCalculator.Get(Sets, 100, 900, Now);
+        Assert.Single(h.Rates);
+        Assert.Throws<ArgumentOutOfRangeException>(() => HistoryCalculator.Get(Sets, 86400, 0, Now));
+        Assert.Throws<ArgumentOutOfRangeException>(() => HistoryCalculator.Get(Sets, 0, 900, Now));
+    }
+
+    [Fact]
     public void History_without_a_log() =>
         Assert.Equal(0, HistoryCalculator.Get(Array.Empty<IReadOnlyDictionary<long, double>>(), 86400, 900, Now).Bytes);
 
