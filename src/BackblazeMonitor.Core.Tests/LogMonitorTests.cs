@@ -408,6 +408,17 @@ public sealed class LogMonitorTests : IDisposable
     }
 
     [Fact]
+    public void A_log_recreated_longer_than_the_old_position_is_counted_from_its_start()
+    {
+        WriteLog("25.log", Sent("2026-09-25 00:01:00", "a.bin") + "\r\n", "2026-09-25 00:01:00");
+        var m = NewMonitor();
+        Assert.Equal("5000 bytes in 1 slots, 1 points, last 00:01:00", Summary(m, "2026-09-25 00:10:00"));
+        // recreated (monthly rotation): longer than the old position, different content from byte 0
+        WriteLog("25.log", Sent("2026-09-25 00:02:00", "a-much-longer-name.bin") + "\r\n" + Sent("2026-09-25 00:03:00", "c.bin") + "\r\n", "2026-09-25 00:03:00");
+        Assert.Equal("10000 bytes in 1 slots, 2 points, last 00:03:00", Summary(m, "2026-09-25 00:10:00"));
+    }
+
+    [Fact]
     public void Recent_set_keys_rows_and_file_names()
     {
         var s = new RecentFileSet();

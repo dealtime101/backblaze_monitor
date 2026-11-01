@@ -127,6 +127,22 @@ public class LogParserTests
     }
 
     [Fact]
+    public void A_file_replaced_by_a_longer_one_is_read_from_the_start()
+    {
+        // the saved position (4) follows "abc\n"; the new file is longer but 4 is in the middle of its first line
+        using var ms = new MemoryStream(Encoding.UTF8.GetBytes("first-line\nsecond\n"));
+        var r = LogReader.ReadFrom(ms, 4)!;
+        Assert.True(r.Restarted);
+        Assert.Equal("first-line\nsecond\n", r.Text);
+        Assert.Equal(18, r.Pos);
+        // the same file read from a real line end is a plain continuation
+        using var ms2 = new MemoryStream(Encoding.UTF8.GetBytes("first-line\nsecond\n"));
+        var c = LogReader.ReadFrom(ms2, 11)!;
+        Assert.False(c.Restarted);
+        Assert.Equal("second\n", c.Text);
+    }
+
+    [Fact]
     public void Read_with_no_new_data_gives_empty_chunk_at_same_position()
     {
         using var ms = new MemoryStream(Encoding.UTF8.GetBytes("abc\n"));

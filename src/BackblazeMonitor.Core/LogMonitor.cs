@@ -173,6 +173,7 @@ public sealed class LogMonitor
             if (e is null || e.Stamp is null || f.Length < e.Pos) e = new LogEntry();
             var r = reader(f.FullPath, e.Pos);
             if (r is null) continue; // unreadable for now: next pass
+            if (r.Restarted) e = new LogEntry(); // replaced by a longer file: nothing of the old one stays
             read += r.Text.Length;
 
             // The newest of each file: 30.log is read after 01.log

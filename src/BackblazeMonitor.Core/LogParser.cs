@@ -21,8 +21,11 @@ public sealed record LogBlock(DateTime Time, double Bits, double Bytes, string N
 /// <summary>A file named by a log line, with the time of that line.</summary>
 public sealed record RecentFile(DateTime Time, string Path);
 
-/// <summary>Complete lines read from a log: the text and the position just after the last line ending.</summary>
-public sealed record LogChunk(string Text, long Pos);
+/// <summary>
+/// Complete lines read from a log: the text and the position just after the last line ending.
+/// <paramref name="Restarted"/>: the file was replaced by a longer one, so the text is read from the start.
+/// </summary>
+public sealed record LogChunk(string Text, long Pos, bool Restarted = false);
 
 /// <summary>Parsing of the Backblaze transmission log (pure functions over text).</summary>
 public static class LogParser
@@ -119,11 +122,24 @@ public static class LogReader
 
     /// <summary>
     /// Reads from <paramref name="pos"/>. Returns <c>null</c> if the stream is shorter than
-    /// <paramref name="pos"/> (log truncated or replaced).
+    /// <paramref name="pos"/> (log truncated or replaced). A saved position always follows a line ending: if
+    /// the byte before it is not one, the file is another one (recreated, and already longer than the old
+    /// position), so it is read from the start and the chunk says so.
     /// </summary>
     public static LogChunk? ReadFrom(Stream stream, long pos)
     {
         if (stream.Length < pos) return null;
+        var restarted = false;
+        if (pos > 0)
+        {
+            stream.Seek(pos - 1, SeekOrigin.Begin);
+            if (stream.ReadByte() != 10)
+            {
+                pos = 0;
+                restarted = true;
+            }
+        }
+
         stream.Seek(pos, SeekOrigin.Begin);
         var buf = new byte[stream.Length - pos];
         var read = 0;
@@ -134,7 +150,8 @@ public static class LogReader
             read += n;
         }
 
-        return ExtractCompleteLines(buf, read, pos);
+        var chunk = ExtractCompleteLines(buf, read, pos);
+        return restarted ? chunk with { Restarted = true } : chunk;
     }
 
     /// <summary>
