@@ -65,7 +65,9 @@ internal static class VacationSsh
     {
         try
         {
-            var psi = new ProcessStartInfo("ssh.exe")
+            var ssh = AppPaths.SshExe();
+            if (ssh is null) return (false, "ssh.exe not found", -1);
+            var psi = new ProcessStartInfo(ssh)
             {
                 UseShellExecute = false,
                 CreateNoWindow = true,

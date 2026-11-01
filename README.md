@@ -43,7 +43,7 @@ Both are off unless you set them up; most people never need them.
   VacationKey=C:\Users\me\.ssh\my_key
   ```
 
-  The remote end must answer `status`, `off` and `on <hours>` (hours from 1, 4, 8, 12, 24, 48, 72, 336) and nothing else: the tile sends nothing outside that list. `ssh.exe` (Windows OpenSSH) must be on the PATH.
+  The remote end must answer `status`, `off` and `on <hours>` (hours from 1, 4, 8, 12, 24, 48, 72, 336) and nothing else: the tile sends nothing outside that list. `ssh.exe` (Windows OpenSSH, found in `System32\\OpenSSH` or in a folder of the PATH other than the program's folder) is run by its full path.
 
 ## Files written
 

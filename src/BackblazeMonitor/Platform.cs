@@ -46,6 +46,38 @@ internal static class AppPaths
 
     public static string PowerShellExe => Path.Combine(PsHome, "powershell.exe");
 
+    /// <summary>
+    /// ssh.exe by absolute path, or <c>null</c> when there is none: Windows OpenSSH in System32 first, then the
+    /// PATH entries that are absolute and are neither the program's folder nor the current directory. A bare
+    /// "ssh.exe" would be looked up by CreateProcess in those two folders first, and anything dropped there would
+    /// receive the key path and the host.
+    /// </summary>
+    public static string? SshExe()
+    {
+        var system = Path.Combine(Environment.SystemDirectory, "OpenSSH", "ssh.exe");
+        if (File.Exists(system)) return system;
+        var here = Path.GetFullPath(Directory.GetCurrentDirectory()).TrimEnd('\\');
+        foreach (var entry in (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
+        {
+            try
+            {
+                var dir = entry.Trim().Trim('"');
+                if (!Path.IsPathFullyQualified(dir)) continue;
+                var full = Path.GetFullPath(dir).TrimEnd('\\');
+                if (string.Equals(full, Dir.TrimEnd('\\'), StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(full, here, StringComparison.OrdinalIgnoreCase)) continue;
+                var candidate = Path.Combine(full, "ssh.exe");
+                if (File.Exists(candidate)) return candidate;
+            }
+            catch
+            {
+                // An odd PATH entry is skipped
+            }
+        }
+
+        return null;
+    }
+
     private static string ComputeDir()
     {
         var exe = Environment.ProcessPath;
