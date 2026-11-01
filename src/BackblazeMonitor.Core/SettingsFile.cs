@@ -13,7 +13,7 @@ public sealed class Settings
 {
     private static readonly RegexOptions Opt = RegexOptions.IgnoreCase | RegexOptions.CultureInvariant;
     private static readonly Regex UnitsBytes = new("Units=bytes", Opt);
-    private static readonly Regex PeriodRx = new("Period=([0-9])", Opt);
+    private static readonly Regex PeriodRx = new("Period=([0-9]+)", Opt);
     private static readonly Regex StallRx = new("StallAlertMin=([0-9]+)", Opt);
     private static readonly Regex ScheduleRx = new("Schedule=([^\r\n]*)", Opt);
     private static readonly Regex TopMostRx = new("TopMost=True", Opt);
@@ -51,7 +51,8 @@ public sealed class Settings
         var cfg = text ?? "";
         if (UnitsBytes.IsMatch(cfg)) s.ShowBits = false;
         var m = PeriodRx.Match(cfg);
-        if (m.Success) s.Period = int.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture) % Periods.Count;
+        // Only a period that exists is kept; anything else (a stale or mistyped value) leaves the default, it is not folded into range
+        if (m.Success && int.TryParse(m.Groups[1].Value, NumberStyles.None, CultureInfo.InvariantCulture, out var period) && period < Periods.Count) s.Period = period;
         m = StallRx.Match(cfg);
         if (m.Success && int.TryParse(m.Groups[1].Value, NumberStyles.None, CultureInfo.InvariantCulture, out var stall)) s.StallAlertMin = stall;
         m = ScheduleRx.Match(cfg);

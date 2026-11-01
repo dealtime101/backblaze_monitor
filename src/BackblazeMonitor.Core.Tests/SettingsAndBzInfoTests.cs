@@ -40,9 +40,12 @@ public class SettingsAndBzInfoTests
     }
 
     [Fact]
-    public void Period_is_taken_modulo_the_number_of_periods_and_garbage_is_ignored()
+    public void Period_is_kept_only_when_it_exists_and_garbage_is_ignored()
     {
-        Assert.Equal(1, Settings.Parse("Period=7").Period);
+        Assert.Equal(2, Settings.Parse("Period=2").Period);
+        Assert.Equal(0, Settings.Parse("Period=7").Period);   // no such period: the default, not 7 folded into range
+        Assert.Equal(0, Settings.Parse("Period=12").Period);  // read whole (it used to be read as 1)
+        Assert.Equal(0, Settings.Parse("Period=99999999999999999999").Period);
         Assert.Equal(0, Settings.Parse("Period=x").Period);
         Assert.Equal(120, Settings.Parse("StallAlertMin=zz").StallAlertMin);
         Assert.Equal(120, Settings.Parse("StallAlertMin=99999999999999999999").StallAlertMin);
