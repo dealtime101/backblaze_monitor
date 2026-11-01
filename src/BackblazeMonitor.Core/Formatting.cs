@@ -27,7 +27,7 @@ public static class Formatting
         return "0 KB/s";
     }
 
-    /// <summary>Size in binary units: TB, GB (2 decimals), MB (1), KB (0).</summary>
+    /// <summary>Size in binary units: TB, GB (2 decimals), MB (1), KB (0); under 1 KB the bytes, so a remainder is never shown as 0.</summary>
     public static string FormatSize(double b)
     {
         var ci = BzConstants.Invariant;
@@ -35,6 +35,7 @@ public static class Formatting
         if (b >= GB) return (b / GB).ToString("N2", ci) + " GB";
         if (b >= MB) return (b / MB).ToString("N1", ci) + " MB";
         if (b >= KB) return (b / KB).ToString("N0", ci) + " KB";
+        if (b > 0) return Math.Ceiling(b).ToString("N0", ci) + " B";
         return "0 KB";
     }
 

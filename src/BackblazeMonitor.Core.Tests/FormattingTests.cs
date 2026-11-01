@@ -125,7 +125,9 @@ public class FormattingTests
     [Theory]
     [InlineData(5e6, "4.8 MB")]
     [InlineData(0.0, "0 KB")]
-    [InlineData(1023.0, "0 KB")]
+    [InlineData(1023.0, "1,023 B")]   // a remainder under 1 KB is shown in bytes, not as 0 KB
+    [InlineData(512.0, "512 B")]
+    [InlineData(0.4, "1 B")]
     [InlineData(2048.0, "2 KB")]
     [InlineData(5242880.0, "5.0 MB")]
     [InlineData(1073741824.0, "1.00 GB")]
