@@ -541,6 +541,7 @@ internal sealed partial class MainForm : Form, ITrayHost
 
         _lblStatus.ForeColor = color;
         _dot.DotColor = color;
+        _dot.AccessibleName = "Service status: " + _lblStatus.Text; // the colour alone says nothing to a screen reader
         _btnStart.Enabled = _canStart;
         _btnStop.Enabled = _canStop;
         _btnRestart.Enabled = _canRestart;
