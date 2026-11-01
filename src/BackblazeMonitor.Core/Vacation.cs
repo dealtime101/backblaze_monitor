@@ -50,10 +50,10 @@ public static class Vacation
     public static string? Command(int hours) =>
         hours == 0 ? "off" : Hours.Contains(hours) ? "on " + hours.ToString(CultureInfo.InvariantCulture) : null;
 
-    /// <summary>Label of a duration in the sub-menu. 336 h is the remote ceiling, not "forever".</summary>
+    /// <summary>Label of a duration in the sub-menu. 336 h is the remote ceiling, not "forever": it says so.</summary>
     public static string Label(int hours)
     {
-        if (hours >= 336) return "Until I stop it (14 d)";
+        if (hours >= 336) return "14 d (336 h, maximum)";
         if (hours >= 24) return string.Format(CultureInfo.InvariantCulture, "{0} d ({1} h)", hours / 24, hours);
         return string.Format(CultureInfo.InvariantCulture, "{0} h", hours);
     }

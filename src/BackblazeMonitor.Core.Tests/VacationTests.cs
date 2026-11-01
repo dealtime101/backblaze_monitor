@@ -33,7 +33,7 @@ public class VacationTests
     [Fact]
     public void Durations_are_the_ones_the_remote_accepts_and_their_labels() =>
         Assert.Equal(
-            "1 h | 4 h | 8 h | 12 h | 1 d (24 h) | 2 d (48 h) | 3 d (72 h) | Until I stop it (14 d)",
+            "1 h | 4 h | 8 h | 12 h | 1 d (24 h) | 2 d (48 h) | 3 d (72 h) | 14 d (336 h, maximum)",
             string.Join(" | ", Vacation.Hours.Select(Vacation.Label)));
 
     [Fact]
