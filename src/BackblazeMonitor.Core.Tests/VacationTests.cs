@@ -40,6 +40,18 @@ public class VacationTests
     public void Hours_list_matches_the_remote() =>
         Assert.Equal("1,4,8,12,24,48,72,336", string.Join(",", Vacation.Hours));
 
+    [Theory]
+    [InlineData("hold: ACTIF ()")]
+    [InlineData("hold: ACTIF (restantes)")]
+    [InlineData("hold: ACTIF (  )")]
+    public void An_active_hold_with_no_remaining_time_still_reads_as_active(string output)
+    {
+        var s = Vacation.ParseState(output);
+        Assert.True(s.Active);
+        Assert.Equal("active", s.Text);
+        Assert.Equal("Vacation mode: active", Vacation.MenuText(s));
+    }
+
     [Fact]
     public void Stop_is_greyed_only_when_the_remote_is_known_to_hold_nothing()
     {

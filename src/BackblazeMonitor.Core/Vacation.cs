@@ -65,7 +65,8 @@ public static class Vacation
     public static VacationState ParseState(string output)
     {
         var m = Active.Match(output);
-        if (m.Success) return new VacationState(true, m.Groups[1].Value, false);
+        // "hold: ACTIF ()" with nothing inside the brackets still says the mode is on
+        if (m.Success) return new VacationState(true, m.Groups[1].Value.Length > 0 ? m.Groups[1].Value : "active", false);
         if (Expired.IsMatch(output)) return new VacationState(false, "expired", false);
         if (None.IsMatch(output)) return new VacationState(false, "none", false);
         return VacationState.Unreadable;
