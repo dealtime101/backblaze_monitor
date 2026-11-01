@@ -92,7 +92,7 @@ public class SettingsAndBzInfoTests
     private static string BzXml(string auto, string sched) =>
         $"<bzinfo><do_backup net_auto_throttle=\"{auto}\" net_throttle=\"50\" num_backup_threads=\"4\" backup_schedule_type=\"{sched}\" /></bzinfo>";
 
-    private const string Manual = "Backblaze manual: 50 %, 4 thread(s) - click for auto / once_per_day";
+    private const string Manual = "Backblaze manual: 50 %, 4 threads - click for auto / once_per_day";
     private const string Auto = "Backblaze: automatic - the limit above is the cap / continuously";
 
     private static string Show(BzInfo i) => $"{i.StateText} / {i.Schedule}";
@@ -110,6 +110,13 @@ public class SettingsAndBzInfoTests
         Assert.False(a.HasLink);
         Assert.Equal("Backblaze: configuration not found", BzInfo.NotFoundText);
     }
+
+    [Theory]
+    [InlineData(1, "Backblaze manual: 50 %, 1 thread - click for auto")]
+    [InlineData(0, "Backblaze manual: 50 %, 0 threads - click for auto")]
+    [InlineData(20, "Backblaze manual: 50 %, 20 threads - click for auto")]
+    public void The_thread_count_is_in_the_right_number(int threads, string want) =>
+        Assert.Equal(want, new BzInfo(false, 50, threads, "continuously").StateText);
 
     [Fact]
     public void A_longer_attribute_name_is_not_read_as_the_one_wanted()

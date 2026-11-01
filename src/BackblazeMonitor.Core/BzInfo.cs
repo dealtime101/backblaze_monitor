@@ -64,7 +64,7 @@ public sealed record BzInfo(bool Auto, int Throttle, int Threads, string Schedul
     /// </summary>
     public string StateText => !Known ? UnreadText : Auto
         ? "Backblaze: automatic - the limit above is the cap"
-        : string.Format(CultureInfo.InvariantCulture, "Backblaze manual: {0} %, {1} thread(s) - click for auto", Throttle, Threads);
+        : string.Format(CultureInfo.InvariantCulture, "Backblaze manual: {0} %, {1} {2} - click for auto", Throttle, Threads, Threads == 1 ? "thread" : "threads");
 
     /// <summary>In manual mode the whole text is a link that switches back to auto: true when the link exists.</summary>
     public bool HasLink => Known && !Auto;
