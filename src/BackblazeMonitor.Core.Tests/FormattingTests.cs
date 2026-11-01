@@ -26,6 +26,21 @@ public class FormattingTests
     public void Truncated_report_is_unknown_not_zero() =>
         Assert.Null(BackupReports.ReadRemaining("<remaining remainingnumfilesforbackup=\"1\""));
 
+    [Theory]
+    [InlineData("<r remainingnumfilesforbackup=\"189379\" remainingnumbytesforbackup=\"9657")]  // cut in the middle of the byte count
+    [InlineData("<r remainingnumfilesforbackup=\"189379\" remainingnumbytesforbackup=\"")]      // cut right after the opening quote
+    [InlineData("<r remainingnumbytesforbackup=\"")]
+    public void A_report_cut_in_the_middle_of_the_byte_count_is_unknown_not_a_small_number(string cut) =>
+        Assert.Null(BackupReports.ReadRemaining(cut));
+
+    [Fact]
+    public void A_report_cut_in_the_file_count_keeps_the_bytes_and_drops_the_files()
+    {
+        var r = BackupReports.ReadRemaining("<r remainingnumbytesforbackup=\"5\" remainingnumfilesforbackup=\"18");
+        Assert.Equal(5L, r!.Bytes);
+        Assert.Null(r.Files);
+    }
+
     [Fact]
     public void Missing_report_is_unknown() => Assert.Null(BackupReports.ReadRemaining(null));
 
