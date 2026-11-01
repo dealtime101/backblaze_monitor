@@ -78,10 +78,11 @@ public static class Vacation
     public static string MenuText(VacationState? state) => "Vacation mode: " + (state?.Text ?? "?");
 
     /// <summary>
-    /// "Stop" is greyed only when the state is KNOWN to hold nothing (none, expired); active or unknown stays
-    /// offered, since a hold may be in place.
+    /// "Stop" is greyed only when the state is KNOWN to hold nothing ("none"). Active or unknown stays offered,
+    /// since a hold may be in place, and so does "expired": the remote has not purged it yet (the threads are
+    /// still raised until its next tick), and stopping forces the purge now.
     /// </summary>
-    public static bool StopEnabled(VacationState? state) => state is null || state.Active || state.Unknown;
+    public static bool StopEnabled(VacationState? state) => state is null || state.Active || state.Unknown || state.Text == "expired";
 
     /// <summary>Message after a pose or a stop.</summary>
     public static string ResultMessage(int hours, bool ok) =>

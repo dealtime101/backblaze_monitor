@@ -41,14 +41,15 @@ public class VacationTests
         Assert.Equal("1,4,8,12,24,48,72,336", string.Join(",", Vacation.Hours));
 
     [Fact]
-    public void Stop_is_greyed_only_when_nothing_is_known_to_be_held()
+    public void Stop_is_greyed_only_when_the_remote_is_known_to_hold_nothing()
     {
         Assert.True(Vacation.StopEnabled(null));
         Assert.True(Vacation.StopEnabled(new VacationState(true, "1h", false)));
         Assert.True(Vacation.StopEnabled(VacationState.Unreadable));
         Assert.True(Vacation.StopEnabled(VacationState.Unreachable));
         Assert.False(Vacation.StopEnabled(Vacation.ParseState("hold: AUCUN")));
-        Assert.False(Vacation.StopEnabled(Vacation.ParseState("hold: expire")));
+        // expired but not purged yet: the raised threads are still applied, Stop forces the purge
+        Assert.True(Vacation.StopEnabled(Vacation.ParseState("hold: expire")));
     }
 
     [Fact]
