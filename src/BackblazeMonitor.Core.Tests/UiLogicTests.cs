@@ -120,7 +120,11 @@ public class UiLogicTests
     [InlineData(23, 0, 0, true)]          // outside, none wanted and in place
     [InlineData(23, 0, 3_000_000, false)] // outside, the limit is still there
     [InlineData(8, 2, 0, true)]           // 2 min after a switch: the task may not have run yet
-    [InlineData(21, 57, 3_000_000, true)] // 3 min before the next one: same
+    [InlineData(21, 57, 0, true)]         // 3 min BEFORE the next switch, no policy where the window wants one: tolerance alone
+    [InlineData(21, 57, 3_000_000, true)] // 3 min before the next one, and the policy is the expected one anyway
+    [InlineData(7, 57, 3_000_000, true)]  // 3 min before the window opens, the limit still there: the task may not have run
+    [InlineData(21, 54, 0, false)]        // 6 min before the switch: beyond the tolerance
+    [InlineData(8, 5, 0, false)]          // 5 min after a switch: beyond the tolerance
     [InlineData(12, 0, -1, true)]         // policy not read yet
     public void ScheduleIsAppliedChecksThePolicyAwayFromSwitches(int h, int min, double bits, bool expected) =>
         Assert.Equal(expected, Schedule.Parse("08:00-22:00=3")!.IsApplied(new DateTime(2026, 9, 30, h, min, 0), bits));

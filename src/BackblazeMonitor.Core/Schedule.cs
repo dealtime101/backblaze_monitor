@@ -71,7 +71,9 @@ public sealed record Schedule(int Start, int End, int Mbps, string Text)
         var m = now.Hour * 60 + now.Minute;
         foreach (var b in new[] { Start, End })
         {
-            if (((m - b + 1440) % 1440) < 5) return true;
+            // Minutes since the switch: 0..4 just after it, 1436..1439 just before it (up to 4 min), midnight included
+            var since = (m - b + 1440) % 1440;
+            if (since < 5 || since > 1440 - 5) return true;
         }
 
         var want = Contains(m) ? (double)Bits : 0;
