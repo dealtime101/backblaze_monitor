@@ -55,8 +55,11 @@ public sealed class LogMonitorTests : IDisposable
         return $"{h.Count} logs, {tot} bytes";
     }
 
-    [Fact]
-    public void The_window_straddles_two_logs_and_history_follows_the_logs()
+    // The shared story of the next tests: each step is a method, and each test replays the steps it depends on
+    // (without asserting them) before its own, so one failure points at one scenario.
+    private sealed record Story(LogMonitor M, string L24, string L25b, int CutAt);
+
+    private Story Straddling()
     {
         var m = NewMonitor();
         var l24 = Lines.Join(Lines.Blk("2026-09-24 12:00:00", 5000), Lines.Blk("2026-09-24 23:50:00", 1000), "");
@@ -68,36 +71,126 @@ public sealed class LogMonitorTests : IDisposable
         WriteLog("17.log", Lines.Blk("2026-09-17 12:00:00", 90000) + "\r\n", "2026-09-17 23:59:59");
         WriteLog("23.zip", Lines.Blk("2026-09-23 08:00:00", 7000) + "\r\n", "2026-09-24 04:23:00");
         WriteLog("bzstat_lastfile_transmitted.xml", "<x>1 kBits/sec</x>", "2026-09-25 00:06:00");
+        return new Story(m, l24, l25b, cutAt);
+    }
 
-        Assert.Equal("8000 bytes in 3 slots, 2 points, last 00:05:00", Summary(m), ignoreCase: false);
-        Assert.Equal("2 logs, 8000 bytes", Saved());
-
-        File.AppendAllText(Path.Combine(_logDir, "25.log"), l25b.Substring(cutAt));
+    private void AppendRest(Story st)
+    {
+        File.AppendAllText(Path.Combine(_logDir, "25.log"), st.L25b.Substring(st.CutAt));
         File.SetLastWriteTime(Path.Combine(_logDir, "25.log"), T("2026-09-25 00:06:30"));
-        Assert.Equal("11000 bytes in 3 slots, 3 points, last 00:06:00", Summary(m));
-        Assert.Equal("11000 bytes in 3 slots, 3 points, last 00:06:00", Summary(m)); // nothing new, nothing more
+    }
 
-        WriteLog("24.zip", l24, "2026-09-25 00:07:00");
+    private void Zip24(Story st)
+    {
+        WriteLog("24.zip", st.L24, "2026-09-25 00:07:00");
         File.Delete(Path.Combine(_logDir, "24.log"));
-        Assert.Equal("11000 bytes in 3 slots, 3 points, last 00:06:00", Summary(m)); // zipped: what was read stays
+    }
 
-        var hist = HistoryCalculator.Get(m.Logs.Values.Select(e => (IReadOnlyDictionary<long, double>)e.Slots).ToList(), 86400, 900, T("2026-09-25 00:10:00"));
-        Assert.Equal(11000, hist.Bytes);
-
-        // Restart: 24.log now lives only in historique.txt; 25.log, saved at 2000 bytes, is re-read
+    private LogMonitor Restart()
+    {
         var m2 = NewMonitor();
         m2.LoadHistory();
-        Assert.Equal("11000 bytes in 3 slots, 2 points, last 00:06:00", Summary(m2));
+        return m2;
+    }
 
-        // Log shortened: re-read from zero
+    private void Shorten25() =>
         WriteLog("25.log", Lines.Blk("2026-09-25 00:08:00", 500) + "\r\n", "2026-09-25 00:08:00");
-        Assert.Equal("6500 bytes in 3 slots, 1 points, last 00:08:00", Summary(m2));
 
-        // 7 days later: the zipped log leaves the period
+    [Fact]
+    public void The_window_straddles_two_logs_and_history_follows_the_logs()
+    {
+        var st = Straddling();
+        Assert.Equal("8000 bytes in 3 slots, 2 points, last 00:05:00", Summary(st.M), ignoreCase: false);
+        Assert.Equal("2 logs, 8000 bytes", Saved());
+    }
+
+    [Fact]
+    public void A_log_that_grows_is_read_from_where_it_stopped_and_nothing_is_counted_twice()
+    {
+        var st = Straddling();
+        Summary(st.M);
+        AppendRest(st);
+        Assert.Equal("11000 bytes in 3 slots, 3 points, last 00:06:00", Summary(st.M));
+        Assert.Equal("11000 bytes in 3 slots, 3 points, last 00:06:00", Summary(st.M)); // nothing new, nothing more
+    }
+
+    [Fact]
+    public void A_log_that_gets_zipped_keeps_what_was_read_and_the_history_still_counts_it()
+    {
+        var st = Straddling();
+        Summary(st.M);
+        AppendRest(st);
+        Summary(st.M);
+        Zip24(st);
+        Assert.Equal("11000 bytes in 3 slots, 3 points, last 00:06:00", Summary(st.M)); // zipped: what was read stays
+
+        var hist = HistoryCalculator.Get(st.M.Logs.Values.Select(e => (IReadOnlyDictionary<long, double>)e.Slots).ToList(), 86400, 900, T("2026-09-25 00:10:00"));
+        Assert.Equal(11000, hist.Bytes);
+    }
+
+    [Fact]
+    public void After_a_restart_a_log_gone_from_the_folder_lives_on_in_the_history_file()
+    {
+        var st = Straddling();
+        Summary(st.M);
+        AppendRest(st);
+        Summary(st.M);
+        Zip24(st);
+        Summary(st.M);
+
+        // 24.log now lives only in historique.txt; 25.log, saved at 2000 bytes, is re-read
+        Assert.Equal("11000 bytes in 3 slots, 2 points, last 00:06:00", Summary(Restart()));
+    }
+
+    [Fact]
+    public void A_log_that_got_shorter_is_read_again_from_zero()
+    {
+        var st = Straddling();
+        Summary(st.M);
+        AppendRest(st);
+        Summary(st.M);
+        Zip24(st);
+        Summary(st.M);
+        var m2 = Restart();
+        Summary(m2);
+
+        Shorten25();
+        Assert.Equal("6500 bytes in 3 slots, 1 points, last 00:08:00", Summary(m2));
+    }
+
+    [Fact]
+    public void Seven_days_later_the_zipped_log_leaves_the_period()
+    {
+        var st = Straddling();
+        Summary(st.M);
+        AppendRest(st);
+        Summary(st.M);
+        Zip24(st);
+        Summary(st.M);
+        var m2 = Restart();
+        Summary(m2);
+        Shorten25();
+        Summary(m2);
+
         Assert.Equal("500 bytes in 1 slots, 1 points, last 00:08:00", Summary(m2, "2026-10-02 00:05:00"));
         Assert.Equal("1 logs, 500 bytes", Saved());
+    }
 
-        // No more .log
+    [Fact]
+    public void With_no_more_log_left_the_state_is_nolog_and_nothing_is_plotted()
+    {
+        var st = Straddling();
+        Summary(st.M);
+        AppendRest(st);
+        Summary(st.M);
+        Zip24(st);
+        Summary(st.M);
+        var m2 = Restart();
+        Summary(m2);
+        Shorten25();
+        Summary(m2);
+        Summary(m2, "2026-10-02 00:05:00");
+
         File.Delete(Path.Combine(_logDir, "25.log"));
         File.Delete(Path.Combine(_logDir, "17.log"));
         m2.Sample(T("2026-10-02 00:05:00"));
