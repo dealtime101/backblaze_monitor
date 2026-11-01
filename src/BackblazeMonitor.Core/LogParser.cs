@@ -24,8 +24,9 @@ public sealed record RecentFile(DateTime Time, string Path);
 /// <summary>
 /// Complete lines read from a log: the text and the position just after the last line ending.
 /// <paramref name="Restarted"/>: the file was replaced by a longer one, so the text is read from the start.
+/// <paramref name="More"/>: the read stopped at the size cap, the file has more to read after <paramref name="Pos"/>.
 /// </summary>
-public sealed record LogChunk(string Text, long Pos, bool Restarted = false);
+public sealed record LogChunk(string Text, long Pos, bool Restarted = false, bool More = false);
 
 /// <summary>Parsing of the Backblaze transmission log (pure functions over text).</summary>
 public static class LogParser
@@ -107,6 +108,9 @@ public static class LogParser
 /// </summary>
 public static class LogReader
 {
+    /// <summary>Most bytes taken from a log in one pass.</summary>
+    public const long MaxChunkBytes = 16L * 1024 * 1024;
+
     /// <summary>
     /// Pure core: from the bytes read at <paramref name="pos"/>, keeps the complete lines only.
     /// </summary>
@@ -129,7 +133,7 @@ public static class LogReader
     /// the byte before it is not one, the file is another one (recreated, and already longer than the old
     /// position), so it is read from the start and the chunk says so.
     /// </summary>
-    public static LogChunk? ReadFrom(Stream stream, long pos)
+    public static LogChunk? ReadFrom(Stream stream, long pos, long maxBytes = MaxChunkBytes)
     {
         if (stream.Length < pos) return null;
         var restarted = false;
@@ -144,7 +148,10 @@ public static class LogReader
         }
 
         stream.Seek(pos, SeekOrigin.Begin);
-        var buf = new byte[stream.Length - pos];
+        // Never the whole rest of a big log in one block (and a string twice as big): the cap per pass, the
+        // next passes take the rest
+        var more = stream.Length - pos > maxBytes;
+        var buf = new byte[more ? maxBytes : stream.Length - pos];
         var read = 0;
         while (read < buf.Length)
         {
@@ -154,7 +161,9 @@ public static class LogReader
         }
 
         var chunk = ExtractCompleteLines(buf, read, pos);
-        return restarted ? chunk with { Restarted = true } : chunk;
+        // A cap with no line end inside it (one huge line): skip it, or the same bytes would be read for ever
+        if (more && chunk.Text.Length == 0 && chunk.Pos == pos) chunk = chunk with { Pos = pos + read };
+        return chunk with { Restarted = restarted, More = more };
     }
 
     /// <summary>

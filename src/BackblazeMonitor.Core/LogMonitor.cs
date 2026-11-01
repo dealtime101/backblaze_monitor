@@ -195,7 +195,7 @@ public sealed class LogMonitor
 
             e.Points = pts;
             e.Stamp = f.LastWriteUtc;
-            e.Length = f.Length;
+            e.Length = r.More ? -1 : f.Length; // -1: not at the end yet, so the next pass reads on
             e.Pos = r.Pos;
             Logs[f.FullPath] = e;
             changed = true;

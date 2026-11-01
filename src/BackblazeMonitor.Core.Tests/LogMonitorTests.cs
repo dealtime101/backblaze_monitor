@@ -408,6 +408,23 @@ public sealed class LogMonitorTests : IDisposable
     }
 
     [Fact]
+    public void A_log_over_the_cap_is_read_over_several_passes()
+    {
+        WriteLog("25.log", string.Join("\r\n", Enumerable.Range(1, 5).Select(i => Sent($"2026-09-25 00:0{i}:00", $"f{i}.bin"))) + "\r\n", "2026-09-25 00:05:00");
+        var m = NewMonitor();
+        var oneLine = Sent("2026-09-25 00:01:00", "f1.bin").Length + 2;
+        int Pass() => m.Sample(new DirectoryInfo(_logDir).GetFiles().Select(f => new LogFileInfo(f.FullName, f.LastWriteTime, f.LastWriteTimeUtc, f.Length)).ToList(), T("2026-09-25 00:10:00"),
+            (path, pos) =>
+            {
+                using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                return LogReader.ReadFrom(fs, pos, 2 * oneLine + 5);
+            });
+        for (var i = 0; i < 6; i++) Pass();
+        Assert.Equal(5 * 5000.0, m.Logs.Values.Sum(e => e.Slots.Values.Sum()));
+        Assert.Equal(0, Pass()); // at the end: nothing more to read
+    }
+
+    [Fact]
     public void A_log_recreated_longer_than_the_old_position_is_counted_from_its_start()
     {
         WriteLog("25.log", Sent("2026-09-25 00:01:00", "a.bin") + "\r\n", "2026-09-25 00:01:00");

@@ -127,6 +127,39 @@ public class LogParserTests
     }
 
     [Fact]
+    public void A_big_log_is_taken_in_capped_passes_that_end_on_line_ends_and_add_up()
+    {
+        var text = string.Concat(Enumerable.Range(1, 20).Select(i => $"line-{i:00}\n")); // 8 bytes a line
+        using var ms = new MemoryStream(Encoding.UTF8.GetBytes(text));
+        var got = new StringBuilder();
+        long pos = 0;
+        var passes = 0;
+        LogChunk? c;
+        do
+        {
+            c = LogReader.ReadFrom(ms, pos, 50)!; // 6 lines fit in 50 bytes
+            Assert.True(c.Text.Length <= 50);
+            Assert.EndsWith("\n", c.Text);
+            got.Append(c.Text);
+            pos = c.Pos;
+            passes++;
+        }
+        while (c.More);
+        Assert.Equal(text, got.ToString());
+        Assert.Equal(4, passes); // 6 + 6 + 6 + 2
+        Assert.False(c.More);
+    }
+
+    [Fact]
+    public void A_line_longer_than_the_cap_is_skipped_so_the_reading_goes_on()
+    {
+        using var ms = new MemoryStream(Encoding.UTF8.GetBytes(new string('x', 100) + "\nok\n"));
+        var c = LogReader.ReadFrom(ms, 0, 40)!;
+        Assert.True(c.More);
+        Assert.Equal(40, c.Pos); // moved on, not stuck at 0
+    }
+
+    [Fact]
     public void A_missing_file_is_silent_and_an_unreadable_one_is_reported()
     {
         var dir = Directory.CreateTempSubdirectory("bbm-fail").FullName;
