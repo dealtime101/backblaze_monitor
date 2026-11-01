@@ -30,23 +30,48 @@ internal static class AppIcon
 internal sealed class TrayIconFactory : IDisposable
 {
     private readonly Dictionary<int, Icon> _icons = new();
-    private readonly Bitmap? _logo;
-    private readonly Size _size;
+
+    // Icons replaced after a size change: the NotifyIcon may still show one, so they go at the next change or at exit
+    private readonly List<Icon> _retired = new();
+    private Bitmap? _logo;
+    private Size _size;
 
     public TrayIconFactory(Icon? logoSource)
     {
         _size = SystemInformation.SmallIconSize;
-        if (logoSource is not null)
+        _logo = ToBitmap(logoSource);
+    }
+
+    private static Bitmap? ToBitmap(Icon? source)
+    {
+        if (source is null) return null;
+        try
         {
-            try
-            {
-                _logo = logoSource.ToBitmap();
-            }
-            catch
-            {
-                _logo = null;
-            }
+            return source.ToBitmap();
         }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Re-reads the system's small icon size (it changes with the display scale). When it moved, the cached
+    /// icons are retired and the logo is taken again from <paramref name="logoSource"/> at the new size.
+    /// Returns whether the caller must fetch its icon again.
+    /// </summary>
+    public bool Resize(Icon? logoSource)
+    {
+        var size = SystemInformation.SmallIconSize;
+        if (size == _size) return false;
+        _size = size;
+        foreach (var i in _retired) i.Dispose();
+        _retired.Clear();
+        _retired.AddRange(_icons.Values);
+        _icons.Clear();
+        _logo?.Dispose();
+        _logo = ToBitmap(logoSource);
+        return true;
     }
 
     /// <summary>The icon for a status color (created on first use).</summary>
@@ -92,7 +117,9 @@ internal sealed class TrayIconFactory : IDisposable
     public void Dispose()
     {
         foreach (var i in _icons.Values) i.Dispose();
+        foreach (var i in _retired) i.Dispose();
         _icons.Clear();
+        _retired.Clear();
         _logo?.Dispose();
     }
 }
@@ -158,12 +185,15 @@ internal sealed class TrayController : IDisposable
     private readonly ToolStripMenuItem _logon;
     private readonly ToolStripMenuItem? _vac;
     private readonly ToolStripMenuItem? _vacOff;
+    private readonly Icon? _fallbackLogo;
+    private readonly SynchronizationContext? _ui = SynchronizationContext.Current;
     private Color _color = Color.Gray;
     private string _text = "";
 
     public TrayController(ITrayHost host, Icon? logoSource)
     {
         _host = host;
+        _fallbackLogo = logoSource;
         _icons = new TrayIconFactory(logoSource);
         _menu = new ContextMenuStrip();
         var show = new ToolStripMenuItem("Show");
@@ -226,6 +256,16 @@ internal sealed class TrayController : IDisposable
         _tray.DoubleClick += (_, _) => Safe(host.ShowTile);
         _tray.BalloonTipClicked += (_, _) => Safe(host.ShowTile);
         _tray.Visible = true;
+        Microsoft.Win32.SystemEvents.DisplaySettingsChanged += OnDisplayChanged;
+    }
+
+    // A display scale change moves the system's icon size: the icons are drawn again at the new size. The event
+    // comes from another thread.
+    private void OnDisplayChanged(object? sender, EventArgs e) => _ui?.Post(_ => Safe(RebuildIcons), null);
+
+    private void RebuildIcons()
+    {
+        if (_icons.Resize(AppIcon.Load(SystemInformation.SmallIconSize) ?? _fallbackLogo)) _tray.Icon = _icons.Get(_color);
     }
 
     /// <summary>Menu enabled or not (it is off while a privileged action runs).</summary>
@@ -310,6 +350,7 @@ internal sealed class TrayController : IDisposable
 
     public void Dispose()
     {
+        Microsoft.Win32.SystemEvents.DisplaySettingsChanged -= OnDisplayChanged;
         _tray.Visible = false;
         _tray.Dispose();
         _menu.Dispose();
