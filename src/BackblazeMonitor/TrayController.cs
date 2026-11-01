@@ -244,10 +244,13 @@ internal sealed class TrayController : IDisposable
             _tray.Icon = _icons.Get(color);
         }
 
+        // Whatever the caller sends is cut to what NotifyIcon accepts, and remembered only once it is set: a
+        // throw must not leave the old tooltip frozen as if it were current
+        text = Formatting.CapTrayText(text);
         if (text != _text)
         {
-            _text = text;
             _tray.Text = text;
+            _text = text;
         }
     }
 

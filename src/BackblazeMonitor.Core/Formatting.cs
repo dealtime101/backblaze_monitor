@@ -77,9 +77,12 @@ public static class Formatting
     {
         var t = $"Backblaze: {status}\n{speed}";
         if (!string.IsNullOrEmpty(vacation)) t += $"\nVacation: {vacation}";
-        if (t.Length > BzConstants.TrayTextMax) t = t.Substring(0, BzConstants.TrayTextMax);
-        return t;
+        return CapTrayText(t);
     }
+
+    /// <summary>The text cut to what NotifyIcon.Text accepts (it throws beyond).</summary>
+    public static string CapTrayText(string t) =>
+        t.Length > BzConstants.TrayTextMax ? t.Substring(0, BzConstants.TrayTextMax) : t;
 
     /// <summary>"HH:mm" for today, "ddd d, HH:mm" (English) for another day: recent-files list.</summary>
     public static string FormatWhen(DateTime value, DateTime today)

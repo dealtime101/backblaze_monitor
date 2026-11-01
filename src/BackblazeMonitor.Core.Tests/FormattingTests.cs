@@ -83,8 +83,12 @@ public class FormattingTests
         Assert.Equal("Backblaze: Running\n12.3 Mbps", Formatting.GetTrayText("Running", "12.3 Mbps"));
 
     [Fact]
-    public void Tray_tooltip_capped_at_63_characters() =>
+    public void Tray_tooltip_capped_at_63_characters()
+    {
         Assert.Equal(63, Formatting.GetTrayText(new string('x', 80), "1.0 Mbps").Length);
+        Assert.Equal(63, Formatting.CapTrayText(new string('y', 500)).Length); // what the tray controller applies to any text
+        Assert.Equal("short", Formatting.CapTrayText("short"));
+    }
 
     [Fact]
     public void Tray_tooltip_state_and_rate() =>
