@@ -44,12 +44,13 @@ internal static class StartupShortcut
             if (IsEnabled())
             {
                 File.Delete(LinkPath);
-                return true;
+                return !File.Exists(LinkPath);
             }
 
             WriteLink();
             ClearDisabledFlag();
-            return true;
+            // What it is now, not what was attempted: a flag that could not be cleared leaves it disabled
+            return IsEnabled();
         }
         catch (Exception ex)
         {
@@ -84,9 +85,10 @@ internal static class StartupShortcut
             using var key = Registry.CurrentUser.OpenSubKey(ApprovedKey, writable: true);
             key?.DeleteValue(FileName, throwOnMissingValue: false);
         }
-        catch
+        catch (Exception ex)
         {
-            // No flag, or no access: the shortcut still works
+            // No access to the flag: the shortcut stays disabled, and the caller sees it through IsEnabled
+            ErrorLog.Write("startup shortcut flag", ex);
         }
     }
 
