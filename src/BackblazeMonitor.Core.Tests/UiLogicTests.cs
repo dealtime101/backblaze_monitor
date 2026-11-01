@@ -165,8 +165,15 @@ public class UiLogicTests
     public void QosGarbageIsUnknown(string output) => Assert.Null(QosReadResult.Parse(output));
 
     [Fact]
-    public void QosScriptTargetsTheOwnPolicy() =>
-        Assert.Contains("'" + BzConstants.QosName + "'", QosReadResult.GetScript());
+    public void QosScriptTargetsTheOwnPolicy()
+    {
+        var script = QosReadResult.GetScript();
+        Assert.Contains("'" + BzConstants.QosName + "'", script);
+        Assert.Contains("-ErrorAction Stop", script); // a failed read must not look like an empty answer
+        Assert.DoesNotContain("SilentlyContinue", script);
+        Assert.Contains("ObjectNotFound') { exit 0 }", script); // only a missing policy is "no limit"
+        Assert.EndsWith("exit 1 }", script);
+    }
 
     [Fact]
     public void BzCliArgumentsQuoteThePath() =>

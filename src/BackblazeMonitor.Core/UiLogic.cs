@@ -270,11 +270,15 @@ public sealed class QosReadPacer
 /// <summary>Parsing of the QoS read output.</summary>
 public static class QosReadResult
 {
-    /// <summary>PowerShell script that prints the current throttle (bits/s) of the policy, nothing if absent.</summary>
+    /// <summary>
+    /// PowerShell script that prints the current throttle (bits/s) of the policy, nothing if absent. Only
+    /// "no such policy" (ObjectNotFound) is an empty answer; any other failure (access denied, module or CIM
+    /// error) exits with 1, so it is read as unknown and not as "no limit".
+    /// </summary>
     public static string GetScript() =>
-        $"try {{ $p = Get-NetQosPolicy -Name '{BzConstants.QosName}' -ErrorAction SilentlyContinue; " +
+        $"try {{ $p = Get-NetQosPolicy -Name '{BzConstants.QosName}' -ErrorAction Stop; " +
         "if ($p) { [Console]::Out.Write(([double]$p.ThrottleRateAction).ToString('R', [Globalization.CultureInfo]::InvariantCulture)) } " +
-        "exit 0 } catch { exit 1 }";
+        "exit 0 } catch { if ($_.CategoryInfo.Category -eq 'ObjectNotFound') { exit 0 } exit 1 }";
 
     /// <summary>Bits per second from the script output: empty means no policy (0); garbage is unknown (<c>null</c>).</summary>
     public static double? Parse(string? output)
