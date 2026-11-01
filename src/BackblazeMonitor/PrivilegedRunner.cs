@@ -12,45 +12,69 @@ namespace BackblazeMonitor;
 /// </summary>
 internal static class AgentTaskClient
 {
-    private static dynamic? Connect()
+    // Every COM object obtained along the way is released when the scope ends, in reverse order: left to the
+    // finalizer, each poll (up to 240 per action) would pile up new wrappers.
+    private sealed class ComScope : IDisposable
+    {
+        private readonly List<object> _objects = new();
+
+        public dynamic Track(object? com)
+        {
+            if (com is not null) _objects.Add(com);
+            return com!;
+        }
+
+        public void Dispose()
+        {
+            for (var i = _objects.Count - 1; i >= 0; i--)
+            {
+                try
+                {
+                    if (Marshal.IsComObject(_objects[i])) Marshal.FinalReleaseComObject(_objects[i]);
+                }
+                catch
+                {
+                    // Nothing to do
+                }
+            }
+
+            _objects.Clear();
+        }
+    }
+
+    private static dynamic? Connect(ComScope com)
     {
         var type = Type.GetTypeFromProgID("Schedule.Service");
         if (type is null) return null;
-        dynamic svc = Activator.CreateInstance(type)!;
+        dynamic svc = com.Track(Activator.CreateInstance(type));
         svc.Connect();
         return svc;
     }
 
-    private static void Release(object? com)
+    private static dynamic GetTask(ComScope com)
     {
-        try
-        {
-            if (com is not null && Marshal.IsComObject(com)) Marshal.FinalReleaseComObject(com);
-        }
-        catch
-        {
-            // Nothing to do
-        }
+        dynamic svc = Connect(com) ?? throw new InvalidOperationException("Task Scheduler unavailable");
+        dynamic folder = com.Track(svc.GetFolder("\\"));
+        return com.Track(folder.GetTask(BzConstants.AgentTask));
     }
 
     /// <summary>Arguments of the task's first action, or <c>null</c> when the task does not exist or cannot be read.</summary>
     public static string? GetArguments()
     {
-        dynamic? svc = null;
         try
         {
-            svc = Connect();
-            if (svc is null) return null;
-            dynamic task = svc.GetFolder("\\").GetTask(BzConstants.AgentTask);
-            dynamic actions = task.Definition.Actions;
+            using var com = new ComScope();
+            dynamic task = GetTask(com);
+            dynamic definition = com.Track(task.Definition);
+            dynamic actions = com.Track(definition.Actions);
             dynamic action;
             try
             {
-                action = actions.Item(1);
+                action = com.Track(actions.Item(1));
             }
             catch
             {
-                action = actions[1];
+                action = com.Track(actions[1]);
             }
 
             return (string?)action.Arguments;
@@ -59,44 +83,24 @@ internal static class AgentTaskClient
         {
             return null;
         }
-        finally
-        {
-            Release((object?)svc);
-        }
     }
 
     /// <summary>Last run time and last result of the task. Throws if unreadable.</summary>
     public static (DateTime LastRun, int LastResult) GetLastRun()
     {
-        dynamic? svc = null;
-        try
-        {
-            svc = Connect() ?? throw new InvalidOperationException("Task Scheduler unavailable");
-            dynamic task = svc.GetFolder("\\").GetTask(BzConstants.AgentTask);
-            DateTime lastRun = task.LastRunTime;
-            int lastResult = task.LastTaskResult;
-            return (lastRun, lastResult);
-        }
-        finally
-        {
-            Release((object?)svc);
-        }
+        using var com = new ComScope();
+        dynamic task = GetTask(com);
+        DateTime lastRun = task.LastRunTime;
+        int lastResult = task.LastTaskResult;
+        return (lastRun, lastResult);
     }
 
     /// <summary>Starts the task. Throws if it cannot start.</summary>
     public static void Start()
     {
-        dynamic? svc = null;
-        try
-        {
-            svc = Connect() ?? throw new InvalidOperationException("Task Scheduler unavailable");
-            dynamic task = svc.GetFolder("\\").GetTask(BzConstants.AgentTask);
-            task.Run(null);
-        }
-        finally
-        {
-            Release((object?)svc);
-        }
+        using var com = new ComScope();
+        dynamic task = GetTask(com);
+        com.Track(task.Run(null)); // returns the running instance
     }
 }
 
