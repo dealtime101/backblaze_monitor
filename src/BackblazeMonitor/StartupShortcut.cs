@@ -70,7 +70,9 @@ internal static class StartupShortcut
             var exe = ExePath;
             if (exe is null || !File.Exists(LinkPath)) return;
             var target = ReadTarget();
-            if (!string.Equals(target, exe, StringComparison.OrdinalIgnoreCase)) WriteLink();
+            // Only a target that was read and differs: an unreadable one (no WScript.Shell) is not "stale", and
+            // rewriting would fail again at every launch
+            if (target is not null && !string.Equals(target, exe, StringComparison.OrdinalIgnoreCase)) WriteLink();
         }
         catch (Exception ex)
         {
