@@ -477,6 +477,13 @@ public sealed class LogMonitorTests : IDisposable
         Assert.Equal("10000 bytes in 1 slots, 2 points, last 00:03:00", Summary(m, "2026-09-25 00:10:00"));
     }
 
+    [Theory]
+    [InlineData(@"C:\Videos\a.mkv", "a.mkv")]
+    [InlineData("C:/Videos/b.mkv", "b.mkv")]
+    [InlineData(@"C:\Videos/mixed\c.mkv", "c.mkv")]
+    [InlineData("bare.txt", "bare.txt")]
+    public void The_file_name_follows_either_separator(string path, string want) => Assert.Equal(want, RecentFileSet.FileName(path));
+
     [Fact]
     public void A_newer_entry_brings_the_latest_spelling_of_the_path_an_older_one_does_not()
     {

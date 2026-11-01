@@ -58,6 +58,6 @@ public sealed class RecentFileSet
         "\n",
         Rows().Select(r => r.Path + "|" + r.Time.ToString("o", CultureInfo.InvariantCulture)));
 
-    /// <summary>File name of a path: what follows the last backslash.</summary>
-    public static string FileName(string path) => path.Substring(path.LastIndexOf('\\') + 1);
+    /// <summary>File name of a path: what follows the last backslash or slash (Windows accepts both).</summary>
+    public static string FileName(string path) => path.Substring(path.LastIndexOfAny(new[] { '\\', '/' }) + 1);
 }
