@@ -257,5 +257,11 @@ public class VolumeTests
         // a rewrite that cannot be read: unknown, never the stale figure as 0
         Assert.Equal(RemainingRefresh.Unreadable, t.Refresh(stamp.AddHours(1), () => ""));
         Assert.Null(t.Bytes);
+        Assert.Null(t.Files);
+        // the report disappears: the file count goes with the bytes
+        t.Refresh(stamp.AddHours(2), () => "<r remainingnumfilesforbackup=\"7\" remainingnumbytesforbackup=\"42\" />");
+        Assert.Equal(7L, t.Files);
+        Assert.Equal(RemainingRefresh.Missing, t.Refresh(null, () => null));
+        Assert.Null(t.Files);
     }
 }

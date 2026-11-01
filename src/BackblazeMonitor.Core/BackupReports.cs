@@ -301,6 +301,7 @@ public sealed class RemainingTracker
         if (stampUtc is null)
         {
             Bytes = null;
+            Files = null;
             _stamp = null;
             return RemainingRefresh.Missing;
         }
@@ -310,6 +311,7 @@ public sealed class RemainingTracker
         if (r is null)
         {
             Bytes = null;
+            Files = null;
             return RemainingRefresh.Unreadable;
         }
 
