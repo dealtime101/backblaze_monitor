@@ -135,8 +135,9 @@ public static class AgentCommands
         "-NoProfile -NonInteractive -EncodedCommand " + EncodedCommand.Encode(GetCommand(agentFile, allowedBits));
 
     /// <summary>
-    /// Installation, run inside the elevation of an action: a queue (two requests back to back run one
-    /// after the other) and a descriptor that lets the tile's user read and start the task, but not modify
+    /// Installation, run inside the elevation of an action: a queue (a run started while another is still going
+    /// waits for it; the request file holds ONE request, so the tile sends one at a time and waits for the
+    /// result before writing the next, see PrivilegedRunner.RunAgent) and a descriptor that lets the tile's user read and start the task, but not modify
     /// it. A failed installation does not prevent the action that follows.
     /// </summary>
     /// <param name="agentFile">Path of the request file.</param>
