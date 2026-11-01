@@ -46,8 +46,25 @@ public class VolumeTests
     [Fact]
     public void Disks_the_email_from_bzinfo_does_not_leak()
     {
-        var text = VolumeSamples.GetText(V, Array.Empty<VolumeSample>(), NowDt);
-        Assert.DoesNotMatch("secret|@", text);
+        // From the raw reports to everything the tile shows or writes: the volumes read, the window text, the file.
+        // The e-mail also sits where a drive letter is read from (a mount point), the one place it could slip in.
+        var info = Info + "<bzvolume bzVolumeGuid=\"" + GX + "\" mountPointPath=\"secret@exemple.com\" />";
+        var vols = BackupReports.ReadVolumes(Tot, Rem, info);
+        Assert.Equal("E F", string.Join(' ', vols.Select(v => v.Drive)));
+        var samples = VolumeSamples.Add(Array.Empty<VolumeSample>(), vols, T0);
+        var dir = Directory.CreateTempSubdirectory("bbm-leak").FullName;
+        try
+        {
+            var path = Path.Combine(dir, "volumes.txt");
+            Assert.True(VolumeSamples.Save(path, samples));
+            Assert.DoesNotMatch("secret|@", File.ReadAllText(path));
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
+
+        Assert.DoesNotMatch("secret|@", VolumeSamples.GetText(vols, samples, NowDt));
     }
 
     [Fact]
