@@ -115,8 +115,10 @@ public class HistoryAndGraphTests
         {
             var path = Path.Combine(dir, "historique.txt");
             Assert.Empty(HistoryFile.Read(path, dir));
-            File.WriteAllText(path, "25.log 639000000000000000 5000\r\nn importe quoi");
-            Assert.Empty(HistoryFile.Read(path, dir));
+            // one damaged line is skipped, the good one is kept
+            File.WriteAllText(path, "25.log 639000000000000000 5000\r\nn importe quoi\r\n25.log x 5\r\n");
+            var kept = Assert.Single(HistoryFile.Read(path, dir)).Value;
+            Assert.Equal(5000, Assert.Single(kept.Slots).Value);
         }
         finally
         {

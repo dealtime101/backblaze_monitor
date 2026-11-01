@@ -81,11 +81,39 @@ public sealed class LogMonitor
     /// <summary>File currently being transmitted (name of the last block).</summary>
     public string CurrentFile { get; private set; } = "";
 
-    /// <summary>Loads the slots saved by a previous launch. Missing or damaged: starts from the logs.</summary>
-    public void LoadHistory() => Logs = HistoryFile.Read(_historyPath, _logDir);
+    // The history file exists but could not be read: nothing is written over it until a read succeeds.
+    private bool _historyUnread;
+
+    /// <summary>
+    /// Loads the slots saved by a previous launch. Missing: starts from the logs. A damaged line is skipped. An
+    /// unreadable file is not written over: the save waits until it can be read.
+    /// </summary>
+    public void LoadHistory()
+    {
+        var onDisk = HistoryFile.TryRead(_historyPath, _logDir);
+        _historyUnread = onDisk is null;
+        if (onDisk is not null) Logs = onDisk;
+    }
 
     /// <summary>Saves the slots. Returns whether it was written (the caller retries otherwise).</summary>
-    public bool SaveHistory() => HistoryFile.Save(_historyPath, Logs);
+    public bool SaveHistory()
+    {
+        if (_historyUnread)
+        {
+            // Read again; what was counted in memory meanwhile wins over what the file holds
+            var onDisk = HistoryFile.TryRead(_historyPath, _logDir);
+            if (onDisk is null) return false;
+            foreach (var (path, entry) in onDisk)
+            {
+                if (!Logs.TryGetValue(path, out var mine)) Logs[path] = entry;
+                else foreach (var (t, b) in entry.Slots) mine.Slots.TryAdd(t, b);
+            }
+
+            _historyUnread = false;
+        }
+
+        return HistoryFile.Save(_historyPath, Logs);
+    }
 
     /// <summary>
     /// The read order: by last write time, the name only to break a tie. By name alone, 30.log of last month

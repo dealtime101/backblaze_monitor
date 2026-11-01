@@ -408,6 +408,36 @@ public sealed class LogMonitorTests : IDisposable
     }
 
     [Fact]
+    public void An_unreadable_history_file_is_not_overwritten_and_is_merged_once_readable()
+    {
+        Directory.CreateDirectory(_history); // exists but cannot be read as a file
+        var m = NewMonitor();
+        m.LoadHistory();
+        WriteLog("25.log", Sent("2026-09-25 00:01:00", "a.bin") + "\r\n", "2026-09-25 00:01:00");
+        m.Sample(T("2026-09-25 00:10:00"));
+        Assert.False(m.SaveHistory());
+        Assert.True(Directory.Exists(_history)); // nothing was written over it
+
+        Directory.Delete(_history);
+        File.WriteAllText(_history, "24.log 639000000000000000 777\r\n");
+        Assert.True(m.SaveHistory());
+        Assert.Equal("2 logs, 5777 bytes", Saved()); // the old slots survive, with what was counted meanwhile
+    }
+
+    [Fact]
+    public void Saving_keeps_the_previous_history_file_as_bak()
+    {
+        var m = NewMonitor();
+        var old = $"24.log {T("2026-09-24 12:00:00").Ticks} 777"; // inside the 7 days kept
+        File.WriteAllText(_history, old + "\r\n");
+        m.LoadHistory();
+        WriteLog("25.log", Sent("2026-09-25 00:01:00", "a.bin") + "\r\n", "2026-09-25 00:01:00");
+        m.Sample(T("2026-09-25 00:10:00")); // a new slot: the sample saves the history, replacing the file read at launch
+        Assert.Equal(new[] { old }, File.ReadAllLines(_history + ".bak"));
+        Assert.Equal("2 logs, 5777 bytes", Saved());
+    }
+
+    [Fact]
     public void A_log_over_the_cap_is_read_over_several_passes()
     {
         WriteLog("25.log", string.Join("\r\n", Enumerable.Range(1, 5).Select(i => Sent($"2026-09-25 00:0{i}:00", $"f{i}.bin"))) + "\r\n", "2026-09-25 00:05:00");

@@ -86,34 +86,65 @@ public static class HistoryCalculator
 public static class HistoryFile
 {
     /// <summary>
-    /// Reads the file. Missing or damaged: returns an empty table (history restarts from the logs).
-    /// Entries come back without a Stamp, so a present log is re-read from zero.
+    /// Reads the file. Missing: an empty table (history restarts from the logs). A damaged line is skipped, the
+    /// others are kept. Unreadable (locked, no access): also empty here, see <see cref="TryRead"/> for the
+    /// caller that must not then write over the file. Entries come back without a Stamp, so a present log is
+    /// re-read from zero.
     /// </summary>
     /// <param name="historyPath">Path of historique.txt.</param>
     /// <param name="logDir">Folder joined to each log name.</param>
-    public static Dictionary<string, LogEntry> Read(string historyPath, string logDir)
+    public static Dictionary<string, LogEntry> Read(string historyPath, string logDir) =>
+        TryRead(historyPath, logDir) ?? new Dictionary<string, LogEntry>(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Like <see cref="Read"/>, but <c>null</c> when the file exists and cannot be read: that is not an empty
+    /// history, and saving over it would lose the slots of logs that are already zipped.
+    /// </summary>
+    public static Dictionary<string, LogEntry>? TryRead(string historyPath, string logDir)
     {
         var logs = new Dictionary<string, LogEntry>(StringComparer.OrdinalIgnoreCase);
+        string[] lines;
         try
         {
-            foreach (var l in File.ReadAllLines(historyPath))
-            {
-                if (l.Length == 0) continue;
-                var f = l.Split(' ');
-                if (f.Length != 3) return new Dictionary<string, LogEntry>(StringComparer.OrdinalIgnoreCase);
-                var t = long.Parse(f[1], NumberStyles.Integer, CultureInfo.InvariantCulture);
-                var b = double.Parse(f[2], NumberStyles.Float, CultureInfo.InvariantCulture);
-                var p = Path.Combine(logDir, f[0]);
-                if (!logs.TryGetValue(p, out var e)) logs[p] = e = new LogEntry();
-                e.Slots[t] = b;
-            }
+            lines = File.ReadAllLines(historyPath);
         }
-        catch
+        catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
         {
-            return new Dictionary<string, LogEntry>(StringComparer.OrdinalIgnoreCase);
+            return logs;
+        }
+        catch (Exception ex)
+        {
+            ReadFailures.Report(historyPath, ex);
+            return null;
+        }
+
+        foreach (var l in lines)
+        {
+            if (l.Length == 0) continue;
+            var f = l.Split(' ');
+            if (f.Length != 3
+                || !long.TryParse(f[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var t)
+                || !double.TryParse(f[2], NumberStyles.Float, CultureInfo.InvariantCulture, out var b)) continue;
+            var p = Path.Combine(logDir, f[0]);
+            if (!logs.TryGetValue(p, out var e)) logs[p] = e = new LogEntry();
+            e.Slots[t] = b;
         }
 
         return logs;
+    }
+
+    // The file about to be replaced is kept as .bak (unless empty): if it ever gets cut or emptied, the slots of
+    // logs that are already zipped can be put back by hand.
+    private static void KeepBackup(string historyPath)
+    {
+        try
+        {
+            if (new FileInfo(historyPath) is { Exists: true, Length: > 0 }) File.Copy(historyPath, historyPath + ".bak", overwrite: true);
+        }
+        catch
+        {
+            // A backup that cannot be made does not stop the save
+        }
     }
 
     /// <summary>
@@ -139,6 +170,7 @@ public static class HistoryFile
             // lost (zipped logs cannot be re-read).
             try
             {
+                KeepBackup(historyPath);
                 AtomicFile.WriteAllLines(historyPath, lines);
                 return true;
             }
