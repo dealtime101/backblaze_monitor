@@ -109,6 +109,7 @@ internal static class VacationSsh
 internal static class BzCli
 {
     private const int TimeoutMs = 30_000; // as the script: bzcli configure takes a second or two
+    private const int KillWaitMs = 3_000;
 
     /// <summary>Whether bzcli.exe is installed.</summary>
     public static bool Exists() => File.Exists(AppPaths.BzCli);
@@ -149,11 +150,14 @@ internal static class BzCli
                     // Already gone
                 }
 
-                p.WaitForExit();
+                // Bounded: a child that inherited the pipes would keep a plain WaitForExit() from ever returning,
+                // on the UI thread
+                p.WaitForExit(KillWaitMs);
                 return BzAutoOutcome.TimedOut;
             }
 
-            p.WaitForExit();
+            // The process has exited; the pipes may still be held by a child: the exit code is valid now
+            p.WaitForExit(KillWaitMs);
             return p.ExitCode == 0 ? BzAutoOutcome.Done : BzAutoOutcome.Failed;
         }
         catch
