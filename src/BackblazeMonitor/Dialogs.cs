@@ -156,6 +156,9 @@ internal static class VolumeProgressDialog
         {
             Multiline = true,
             ReadOnly = true,
+            // The table is monospaced and aligned by spaces: no wrapping, and bars to reach what does not fit
+            WordWrap = false,
+            ScrollBars = ScrollBars.Both,
             Dock = DockStyle.Fill,
             BorderStyle = BorderStyle.None,
             Font = mono,
