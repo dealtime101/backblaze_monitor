@@ -266,6 +266,19 @@ public class HistoryAndGraphTests
     public void Curve_a_real_gap_drops_back_to_zero() => Assert.Equal("0,36 91,36 91,22 95,7 95,36 181,36 181,29 272,36", Curve(Pts, "12:00"));
 
     [Fact]
+    public void Blocks_older_than_the_window_are_left_off_the_curve_and_do_not_set_the_scale()
+    {
+        var now = new DateTime(2026, 9, 25, 12, 0, 0);
+        var recent = new LogBlock(now.AddMinutes(-10), 2e6, 5e6, "new.mkv");
+        var old = new LogBlock(now.AddMinutes(-60), 400e6, 5e8, "old.mkv"); // a huge peak outside the 30 minutes
+        var with = GraphCurve.Get(new[] { old, recent }, now, 272, 38);
+        var without = GraphCurve.Get(new[] { recent }, now, 272, 38);
+        Assert.All(with, pt => Assert.True(pt.X >= 0));
+        Assert.Equal(without.Select(pt => (pt.X, pt.Y)), with.Select(pt => (pt.X, pt.Y)));
+        Assert.Empty(GraphCurve.Get(new[] { old }, now, 272, 38)); // nothing in the window
+    }
+
+    [Fact]
     public void Curve_of_no_point_is_empty() => Assert.Empty(GraphCurve.Get(Array.Empty<LogBlock>(), Now, 272, 38));
 
     [Fact]

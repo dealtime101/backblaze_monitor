@@ -33,7 +33,16 @@ public static class GraphCurve
 
         // Total rate (sum of the threads), like the current rate, not the rate of one block
         var series = RateCalculator.GetRateSeries(pts);
-        var max = series.Max();
+
+        // A block older than the window is outside the chart: no point left of it, and its peak does not set the
+        // scale (the series itself is computed on all the blocks, the threads in flight at the left edge count)
+        var max = 0.0;
+        for (var i = 0; i < pts.Count; i++)
+        {
+            if (pts[i].Time >= t0 && series[i] > max) max = series[i];
+        }
+
+        if (max == 0.0 && !pts.Any(p => p.Time >= t0)) return seq;
         max = ScaleMax(max);
 
         var prevT = t0;
@@ -41,6 +50,7 @@ public static class GraphCurve
         foreach (var p in pts)
         {
             k++;
+            if (p.Time < t0) continue;
             var x = (float)(((p.Time - t0).TotalSeconds / window) * w);
             var y = (float)(baseY - ((series[k] / max) * (h - 5)));
             // Gap in transmissions: drop back to zero so as not to suggest continuous sending
