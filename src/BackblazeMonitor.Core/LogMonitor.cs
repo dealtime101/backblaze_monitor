@@ -184,9 +184,10 @@ public sealed class LogMonitor
                 if (p.Time >= cut) pts.Add(p);
             }
 
-            foreach (var p in LogParser.GetLogBlocks(r.Text))
+            var blocks = LogParser.GetLogBlocks(r.Text).ToList();
+            HistoryCalculator.AddBlocks(e.Slots, blocks);
+            foreach (var p in blocks)
             {
-                HistoryCalculator.AddBlocks(e.Slots, new[] { p });
                 if (LastSent is null || p.Time > LastSent) LastSent = p.Time;
                 if (p.Time >= cut) pts.Add(p);
             }
