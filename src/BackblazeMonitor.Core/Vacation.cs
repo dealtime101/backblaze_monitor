@@ -86,7 +86,7 @@ public static class Vacation
 
     /// <summary>Message after a pose or a stop.</summary>
     public static string ResultMessage(int hours, bool ok) =>
-        !ok ? "vacation: failed" : hours > 0 ? "vacation " + Label(hours) : "vacation stopped";
+        !ok ? "vacation: failed" : hours > 0 ? "vacation on: " + Label(hours) : "vacation stopped";
 
     /// <summary>Text of the start box offered when vacation mode is set up.</summary>
     public const string StartAsk =

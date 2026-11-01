@@ -57,7 +57,9 @@ public class VacationTests
     {
         Assert.Equal("Vacation mode: ?", Vacation.MenuText(null));
         Assert.Equal("Vacation mode: none", Vacation.MenuText(Vacation.ParseState("hold: AUCUN")));
-        Assert.Equal("vacation 2 d (48 h)", Vacation.ResultMessage(48, true));
+        Assert.Equal("vacation on: 2 d (48 h)", Vacation.ResultMessage(48, true));
+        Assert.Equal("vacation on: 14 d (336 h, maximum)", Vacation.ResultMessage(336, true)); // no capital in the middle of the sentence
+        foreach (var h in Vacation.Hours) Assert.DoesNotMatch("[A-Z]", Vacation.ResultMessage(h, true));
         Assert.Equal("vacation stopped", Vacation.ResultMessage(0, true));
         Assert.Equal("vacation: failed", Vacation.ResultMessage(4, false));
     }
