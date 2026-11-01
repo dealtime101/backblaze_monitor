@@ -192,7 +192,10 @@ public class ScheduleAndCommandTests
         Assert.Contains("'\r\n$o = New-ScheduledTaskSettingsSet -MultipleInstances Queue -ExecutionTimeLimit (New-TimeSpan -Minutes 5)\r\n", setup);
         Assert.Contains("Register-ScheduledTask -TaskName 'BackblazeMonitorAgent' -Action $a -Settings $o -User 'SYSTEM' -RunLevel Highest -Force -ErrorAction Stop | Out-Null\r\n", setup);
         Assert.Contains("$c.GetFolder('\\').GetTask('BackblazeMonitorAgent').SetSecurityDescriptor('D:(A;;FA;;;SY)(A;;FA;;;BA)(A;;GRGX;;;" + sid + ")', 0)\r\n", setup);
-        Assert.EndsWith("} catch { }\r\n", setup);
+        // a failure is written to a file the tile reads, not swallowed; the action that follows still runs (no exit)
+        Assert.EndsWith("} catch { try { [IO.Directory]::CreateDirectory('C:\\x') | Out-Null; [IO.File]::WriteAllText('C:\\x\\requete.txt.err', ($_ | Out-String)) } catch { } }\r\n", setup);
+        Assert.DoesNotContain("exit", setup.Substring(setup.IndexOf("} catch {", StringComparison.Ordinal)));
+        Assert.Equal(@"C:\x\requete.txt.err", AgentCommands.ErrorFile(@"C:\x\requete.txt"));
         // the task receives the tested command
         var enc = System.Text.RegularExpressions.Regex.Match(setup, @"-EncodedCommand (\S+)'").Groups[1].Value;
         Assert.Equal(AgentCommands.GetCommand(@"C:\x\requete.txt", Bits), EncodedCommand.Decode(enc));

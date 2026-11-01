@@ -155,7 +155,20 @@ public static class AgentCommands
                "-RunLevel Highest -Force -ErrorAction Stop | Out-Null\r\n" +
                "$c = New-Object -ComObject Schedule.Service; $c.Connect()\r\n" +
                $"$c.GetFolder('\\').GetTask('{t}').SetSecurityDescriptor('D:(A;;FA;;;SY)(A;;FA;;;BA)(A;;GRGX;;;{sid})', 0)\r\n" +
-               "} catch { }\r\n";
+               // The failure is kept in a file the tile reads afterwards (PrivilegedRunner) and puts in error.log:
+               // the action that follows is not prevented, but a UAC prompt at every action now has a reason on record
+               "} catch { try { " + GetErrorWrite(agentFile) + " } catch { } }\r\n";
+    }
+
+    /// <summary>Where the installation leaves the reason of its failure (next to the request file).</summary>
+    public static string ErrorFile(string agentFile) => agentFile + ".err";
+
+    private static string GetErrorWrite(string agentFile)
+    {
+        var cut = agentFile.LastIndexOf('\\');
+        var dir = cut > 0 ? EscapeSingleQuoted(agentFile.Substring(0, cut)) : "";
+        var create = dir.Length > 0 ? $"[IO.Directory]::CreateDirectory('{dir}') | Out-Null; " : "";
+        return create + $"[IO.File]::WriteAllText('{EscapeSingleQuoted(ErrorFile(agentFile))}', ($_ | Out-String))";
     }
 
     /// <summary>

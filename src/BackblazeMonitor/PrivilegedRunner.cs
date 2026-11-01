@@ -126,7 +126,27 @@ internal static class PrivilegedRunner
             command = GetAgentSetup() + command;
         }
 
-        return RunElevated(command);
+        var outcome = RunElevated(command);
+        if (request is not null) LogAgentSetupFailure();
+        return outcome;
+    }
+
+    // The elevated setup leaves the reason of a failed installation in a file (it cannot fail the action that
+    // follows): put it in error.log, once, and remove the file.
+    private static void LogAgentSetupFailure()
+    {
+        try
+        {
+            var file = AgentCommands.ErrorFile(AppPaths.AgentFile);
+            if (!File.Exists(file)) return;
+            var text = File.ReadAllText(file).Trim();
+            File.Delete(file);
+            if (text.Length > 0) ErrorLog.Write("agent setup", new InvalidOperationException(text));
+        }
+        catch
+        {
+            // Unreadable now: the next action tries again
+        }
     }
 
     private static IReadOnlyList<long> AgentBits() => QosChoices.AgentBits(QosChoices.All).ToList();
