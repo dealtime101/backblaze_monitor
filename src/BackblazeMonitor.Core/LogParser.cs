@@ -168,8 +168,9 @@ public static class LogReader
             using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
             return ReadFrom(fs, pos);
         }
-        catch
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or OutOfMemoryException)
         {
+            ReadFailures.Report(path, ex);
             return null;
         }
     }
@@ -178,7 +179,10 @@ public static class LogReader
 /// <summary>Whole-file text read with full sharing (Backblaze rewrites its reports).</summary>
 public static class SharedFile
 {
-    /// <summary>Reads the whole file as UTF-8, or returns <c>null</c> on any failure.</summary>
+    /// <summary>
+    /// Reads the whole file as UTF-8, or returns <c>null</c> when it cannot be read. A missing file is silent; a
+    /// locked, refused or failed one is also passed to <see cref="ReadFailures"/>.
+    /// </summary>
     public static string? ReadText(string path)
     {
         try
@@ -195,8 +199,9 @@ public static class SharedFile
 
             return Encoding.UTF8.GetString(buf, 0, read);
         }
-        catch
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or OutOfMemoryException)
         {
+            ReadFailures.Report(path, ex);
             return null;
         }
     }

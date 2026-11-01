@@ -127,6 +127,30 @@ public class LogParserTests
     }
 
     [Fact]
+    public void A_missing_file_is_silent_and_an_unreadable_one_is_reported()
+    {
+        var dir = Directory.CreateTempSubdirectory("bbm-fail").FullName;
+        var seen = new List<string>();
+        void Listen(string p, Exception e) => seen.Add(Path.GetFileName(p) + ":" + e.GetType().Name);
+        ReadFailures.Reported += Listen;
+        try
+        {
+            Assert.Null(LogReader.ReadFrom(Path.Combine(dir, "absent.log"), 0));
+            Assert.Null(SharedFile.ReadText(Path.Combine(dir, "absent.xml")));
+            Assert.Empty(seen);
+            Directory.CreateDirectory(Path.Combine(dir, "locked.xml")); // a folder where a file is expected: access refused
+            Assert.Null(SharedFile.ReadText(Path.Combine(dir, "locked.xml")));
+            Assert.Single(seen);
+            Assert.StartsWith("locked.xml:", seen[0]);
+        }
+        finally
+        {
+            ReadFailures.Reported -= Listen;
+            Directory.Delete(dir, true);
+        }
+    }
+
+    [Fact]
     public void A_byte_order_mark_at_the_start_of_the_file_is_not_part_of_the_text()
     {
         var bytes = new byte[] { 0xEF, 0xBB, 0xBF }.Concat(Encoding.UTF8.GetBytes("line\n")).ToArray();
