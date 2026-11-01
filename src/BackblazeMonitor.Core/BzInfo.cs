@@ -14,10 +14,10 @@ namespace BackblazeMonitor.Core;
 public sealed record BzInfo(bool Auto, int Throttle, int Threads, string Schedule)
 {
     private static readonly RegexOptions Opt = RegexOptions.IgnoreCase | RegexOptions.CultureInvariant;
-    private static readonly Regex AutoRx = new("net_auto_throttle=\"([^\"]*)\"", Opt);
-    private static readonly Regex ThrottleRx = new("net_throttle=\"([^\"]*)\"", Opt);
-    private static readonly Regex ThreadsRx = new("num_backup_threads=\"([^\"]*)\"", Opt);
-    private static readonly Regex ScheduleRx = new("backup_schedule_type=\"([^\"]*)\"", Opt);
+    private static readonly Regex AutoRx = new("(?<![A-Za-z0-9_])net_auto_throttle=\"([^\"]*)\"", Opt);
+    private static readonly Regex ThrottleRx = new("(?<![A-Za-z0-9_])net_throttle=\"([^\"]*)\"", Opt);
+    private static readonly Regex ThreadsRx = new("(?<![A-Za-z0-9_])num_backup_threads=\"([^\"]*)\"", Opt);
+    private static readonly Regex ScheduleRx = new("(?<![A-Za-z0-9_])backup_schedule_type=\"([^\"]*)\"", Opt);
 
     /// <summary>Nothing read yet.</summary>
     public static readonly BzInfo Unknown = new(false, 0, 0, "") { Known = false };

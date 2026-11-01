@@ -112,6 +112,20 @@ public class SettingsAndBzInfoTests
     }
 
     [Fact]
+    public void A_longer_attribute_name_is_not_read_as_the_one_wanted()
+    {
+        var raw = "<bzinfo><do_backup xx_net_throttle=\"99\" max_num_backup_threads=\"99\" old_backup_schedule_type=\"never\" " +
+                  "net_throttle=\"50\" num_backup_threads=\"4\" backup_schedule_type=\"continuously\" net_auto_throttle=\"true\" /></bzinfo>";
+        var info = BzInfo.Parse(raw);
+        Assert.Equal(50, info.Throttle);
+        Assert.Equal(4, info.Threads);
+        Assert.Equal("continuously", info.Schedule);
+        Assert.True(info.Auto);
+        // only the lookalikes: nothing is read
+        Assert.False(BzInfo.Parse("<bzinfo><do_backup xx_net_throttle=\"99\" max_num_backup_threads=\"99\" /></bzinfo>").Known);
+    }
+
+    [Fact]
     public void Nothing_read_is_not_shown_as_manual_zero_percent_with_a_link()
     {
         Assert.False(BzInfo.Unknown.Known);
