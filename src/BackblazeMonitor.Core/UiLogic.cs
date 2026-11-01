@@ -285,6 +285,6 @@ public static class QosReadResult
     {
         var t = (output ?? "").Trim();
         if (t.Length == 0) return 0;
-        return double.TryParse(t, NumberStyles.Float, CultureInfo.InvariantCulture, out var v) && v >= 0 ? v : null;
+        return double.TryParse(t, NumberStyles.Float, CultureInfo.InvariantCulture, out var v) && double.IsFinite(v) && v >= 0 ? v : null;
     }
 }

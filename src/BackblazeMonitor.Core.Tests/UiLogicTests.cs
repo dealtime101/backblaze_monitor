@@ -162,6 +162,8 @@ public class UiLogicTests
     [Theory]
     [InlineData("abc")]
     [InlineData("-5")]
+    [InlineData("Infinity")]
+    [InlineData("NaN")]
     public void QosGarbageIsUnknown(string output) => Assert.Null(QosReadResult.Parse(output));
 
     [Fact]
