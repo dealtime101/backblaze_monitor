@@ -32,7 +32,10 @@ public sealed class RecentFileSet
         foreach (var kv in _items.OrderByDescending(kv => kv.Value).Skip(max).ToList()) _items.Remove(kv.Key);
     }
 
-    /// <summary>Replaces the content (used by tests and by a UI restoring state).</summary>
+    /// <summary>
+    /// Sets or overwrites the time of one path, without comparing with the time it already has (unlike
+    /// <see cref="Merge"/>, where the newest wins). It does not empty the set.
+    /// </summary>
     public void Set(string path, DateTime time) => _items[path] = time;
 
     /// <summary>Removes a path.</summary>

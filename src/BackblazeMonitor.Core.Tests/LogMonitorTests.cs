@@ -478,6 +478,19 @@ public sealed class LogMonitorTests : IDisposable
     }
 
     [Fact]
+    public void Set_overwrites_one_path_even_with_an_older_time_and_keeps_the_others()
+    {
+        var set = new RecentFileSet();
+        set.Set(@"C:\a.bin", T("2026-10-01 12:00:00"));
+        set.Set(@"C:\b.bin", T("2026-10-01 11:00:00"));
+        set.Set(@"C:\A.BIN", T("2026-10-01 08:00:00")); // same path (case-insensitive), older: Set overwrites
+        Assert.Equal(T("2026-10-01 08:00:00"), set[@"C:\a.bin"]);
+        Assert.Equal(2, set.Count); // nothing was emptied
+        set.Merge(new[] { new RecentFile(T("2026-10-01 07:00:00"), @"C:\a.bin") }); // Merge keeps the newest
+        Assert.Equal(T("2026-10-01 08:00:00"), set[@"C:\a.bin"]);
+    }
+
+    [Fact]
     public void Recent_set_keys_rows_and_file_names()
     {
         var s = new RecentFileSet();
