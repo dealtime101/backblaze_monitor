@@ -105,7 +105,8 @@ internal static class StartChoiceDialog
         f.AutoScaleMode = AutoScaleMode.Dpi;
         f.Font = SystemFonts.MessageBoxFont ?? f.Font;
         var label = new Label { Text = text, Location = new Point(58, 16), Size = new Size(356, 96), AutoSize = false };
-        var icon = new PictureBox { Image = SystemIcons.Warning.ToBitmap(), Location = new Point(16, 18), Size = new Size(32, 32) };
+        using var warning = SystemIcons.Warning.ToBitmap(); // a PictureBox does not dispose its image: this does, after the dialog
+        var icon = new PictureBox { Image = warning, Location = new Point(16, 18), Size = new Size(32, 32) };
         var start = new Button { Text = "Start", Location = new Point(16, 126), Size = new Size(110, 28), TabIndex = 0 };
         var vacation = new Button
         {
