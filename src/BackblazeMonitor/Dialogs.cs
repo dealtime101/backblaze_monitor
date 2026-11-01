@@ -72,6 +72,7 @@ internal sealed class ScheduleDialog : Form
     public static string? Prompt(IWin32Window? owner, string initial, bool topMost)
     {
         using var d = new ScheduleDialog(initial, topMost);
+        d.StartPosition = owner is null ? FormStartPosition.CenterScreen : FormStartPosition.CenterParent; // near the window that asked
         var r = owner is null ? d.ShowDialog() : d.ShowDialog(owner);
         return r == DialogResult.OK ? d._text.Text : null;
     }
@@ -106,7 +107,7 @@ internal static class StartChoiceDialog
         {
             Text = "Confirmation",
             FormBorderStyle = FormBorderStyle.FixedDialog,
-            StartPosition = FormStartPosition.CenterScreen,
+            StartPosition = owner is null ? FormStartPosition.CenterScreen : FormStartPosition.CenterParent,
             MinimizeBox = false,
             MaximizeBox = false,
             ShowInTaskbar = false,
@@ -157,7 +158,7 @@ internal static class VolumeProgressDialog
         using var f = new Form
         {
             Text = "Progress per disk",
-            StartPosition = FormStartPosition.CenterScreen,
+            StartPosition = owner is null ? FormStartPosition.CenterScreen : FormStartPosition.CenterParent,
             ClientSize = new Size(560, 250),
             TopMost = topMost,
             ShowInTaskbar = false,
