@@ -40,6 +40,23 @@ public class SettingsAndBzInfoTests
     }
 
     [Fact]
+    public void A_key_counts_only_at_the_start_of_its_line()
+    {
+        var s = Settings.Parse("#TopMost=True\r\n; Units=bytes\r\nnote: Period=2 and StallAlertMin=5\r\nSchedule=08:00-22:00=3 # VacationHost=evil\r\n");
+        Assert.False(s.TopMost);
+        Assert.True(s.ShowBits);
+        Assert.Equal(0, s.Period);
+        Assert.Equal(120, s.StallAlertMin);
+        Assert.Equal("", s.VacationHost); // the text after a Schedule value is not a key of its own
+        // the same keys at the start of a line, even indented, are read
+        var ok = Settings.Parse("  TopMost=True\r\n\tUnits=bytes\r\nPeriod=2\r\nVacationHost=nas\r\n");
+        Assert.True(ok.TopMost);
+        Assert.False(ok.ShowBits);
+        Assert.Equal(2, ok.Period);
+        Assert.Equal("nas", ok.VacationHost);
+    }
+
+    [Fact]
     public void Period_is_kept_only_when_it_exists_and_garbage_is_ignored()
     {
         Assert.Equal(2, Settings.Parse("Period=2").Period);

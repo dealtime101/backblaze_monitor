@@ -11,14 +11,16 @@ namespace BackblazeMonitor.Core;
 /// </summary>
 public sealed class Settings
 {
-    private static readonly RegexOptions Opt = RegexOptions.IgnoreCase | RegexOptions.CultureInvariant;
-    private static readonly Regex UnitsBytes = new("Units=bytes", Opt);
-    private static readonly Regex PeriodRx = new("Period=([0-9]+)", Opt);
-    private static readonly Regex StallRx = new("StallAlertMin=([0-9]+)", Opt);
-    private static readonly Regex ScheduleRx = new("Schedule=([^\r\n]*)", Opt);
-    private static readonly Regex TopMostRx = new("TopMost=True", Opt);
-    private static readonly Regex VacHostRx = new("VacationHost=([^\r\n]*)", Opt);
-    private static readonly Regex VacKeyRx = new("VacationKey=([^\r\n]*)", Opt);
+    // Each key must start its line (spaces allowed): a commented line or a value that contains another key's text is not a setting
+    private static readonly RegexOptions Opt = RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Multiline;
+    private const string Start = "^[ \t]*";
+    private static readonly Regex UnitsBytes = new(Start + "Units=bytes", Opt);
+    private static readonly Regex PeriodRx = new(Start + "Period=([0-9]+)", Opt);
+    private static readonly Regex StallRx = new(Start + "StallAlertMin=([0-9]+)", Opt);
+    private static readonly Regex ScheduleRx = new(Start + "Schedule=([^\r\n]*)", Opt);
+    private static readonly Regex TopMostRx = new(Start + "TopMost=True", Opt);
+    private static readonly Regex VacHostRx = new(Start + "VacationHost=([^\r\n]*)", Opt);
+    private static readonly Regex VacKeyRx = new(Start + "VacationKey=([^\r\n]*)", Opt);
 
     /// <summary>Always on top (the pin).</summary>
     public bool TopMost { get; set; }
