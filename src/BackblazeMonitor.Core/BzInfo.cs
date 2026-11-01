@@ -8,10 +8,10 @@ namespace BackblazeMonitor.Core;
 /// it is the one that decides.
 /// </summary>
 /// <param name="Auto">net_auto_throttle: automatic threading/throttle.</param>
-/// <param name="Mbps">net_throttle: Backblaze's internal scale (a percentage in manual mode).</param>
+/// <param name="Throttle">net_throttle: Backblaze's slider, a percentage (shown as such in manual mode). Not a bit rate.</param>
 /// <param name="Threads">num_backup_threads.</param>
 /// <param name="Schedule">backup_schedule_type ("continuously", "once_per_day", ...); empty = unknown.</param>
-public sealed record BzInfo(bool Auto, int Mbps, int Threads, string Schedule)
+public sealed record BzInfo(bool Auto, int Throttle, int Threads, string Schedule)
 {
     private static readonly RegexOptions Opt = RegexOptions.IgnoreCase | RegexOptions.CultureInvariant;
     private static readonly Regex AutoRx = new("net_auto_throttle=\"([^\"]*)\"", Opt);
@@ -35,7 +35,7 @@ public sealed record BzInfo(bool Auto, int Mbps, int Threads, string Schedule)
         var m = AutoRx.Match(raw);
         if (m.Success) info = info with { Auto = string.Equals(m.Groups[1].Value, "true", StringComparison.OrdinalIgnoreCase) };
         m = ThrottleRx.Match(raw);
-        if (m.Success && int.TryParse(m.Groups[1].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var mbps)) info = info with { Mbps = mbps };
+        if (m.Success && int.TryParse(m.Groups[1].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var throttle)) info = info with { Throttle = throttle };
         m = ThreadsRx.Match(raw);
         if (m.Success && int.TryParse(m.Groups[1].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var threads)) info = info with { Threads = threads };
         m = ScheduleRx.Match(raw);
@@ -50,7 +50,7 @@ public sealed record BzInfo(bool Auto, int Mbps, int Threads, string Schedule)
     /// </summary>
     public string StateText => Auto
         ? "Backblaze: automatic - the limit above is the cap"
-        : string.Format(CultureInfo.InvariantCulture, "Backblaze manual: {0} %, {1} thread(s) - click for auto", Mbps, Threads);
+        : string.Format(CultureInfo.InvariantCulture, "Backblaze manual: {0} %, {1} thread(s) - click for auto", Throttle, Threads);
 
     /// <summary>In manual mode the whole text is a link that switches back to auto: true when the link exists.</summary>
     public bool HasLink => !Auto;

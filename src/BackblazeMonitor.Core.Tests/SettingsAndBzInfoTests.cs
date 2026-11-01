@@ -103,7 +103,7 @@ public class SettingsAndBzInfoTests
         var m = BzInfo.Parse(BzXml("false", "once_per_day"));
         Assert.Equal(Manual, Show(m));
         Assert.True(m.HasLink);
-        Assert.Equal(50, m.Mbps);
+        Assert.Equal(50, m.Throttle);
         Assert.Equal(4, m.Threads);
         var a = BzInfo.Parse(BzXml("true", "continuously"));
         Assert.Equal(Auto, Show(a));
@@ -116,7 +116,7 @@ public class SettingsAndBzInfoTests
     {
         var prev = BzInfo.Parse(BzXml("false", "once_per_day"));
         var next = BzInfo.Parse("<bzinfo net_throttle=\"80\" />", prev);
-        Assert.Equal(80, next.Mbps);
+        Assert.Equal(80, next.Throttle);
         Assert.Equal(4, next.Threads);
         Assert.Equal("once_per_day", next.Schedule);
         Assert.False(next.Auto);
