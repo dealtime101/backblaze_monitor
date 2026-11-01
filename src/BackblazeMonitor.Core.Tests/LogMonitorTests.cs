@@ -397,6 +397,18 @@ public sealed class LogMonitorTests : IDisposable
     }
 
     [Fact]
+    public void The_empty_chart_says_loading_before_the_first_read_and_nothing_sent_only_when_empty()
+    {
+        Assert.Equal("Loading...", NetworkTexts.GetChartEmptyText(NetState.Init, 0, 0, null));
+        Assert.Equal("Loading...", NetworkTexts.GetChartEmptyText(NetState.Idle, 1, 0, null)); // long period, no history computed yet
+        Assert.Equal("One block sent so far", NetworkTexts.GetChartEmptyText(NetState.Ok, 0, 1, null));
+        Assert.Equal("Backblaze log not found", NetworkTexts.GetChartEmptyText(NetState.NoLog, 0, 0, null));
+        Assert.Equal("Nothing sent in the last 30 min", NetworkTexts.GetChartEmptyText(NetState.Idle, 0, 0, null));
+        var empty = HistoryCalculator.Get(Array.Empty<IReadOnlyDictionary<long, double>>(), 86400, 900, T("2026-09-25 12:00:00"));
+        Assert.Equal("Nothing sent in the last 24 h", NetworkTexts.GetChartEmptyText(NetState.Idle, 1, 0, empty));
+    }
+
+    [Fact]
     public void A_period_index_out_of_range_is_kept_inside_the_list()
     {
         var m = NewMonitor();

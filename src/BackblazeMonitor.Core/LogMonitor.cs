@@ -341,6 +341,21 @@ public static class NetworkTexts
         return "Peak " + Formatting.FormatRate(peak, showBits) + "  -  " + Formatting.FormatSize(total) + " in 30 min";
     }
 
+    /// <summary>
+    /// What the chart says when it has no curve to draw. "Nothing sent" only when the data is really empty:
+    /// before the first read (Init, or no history yet for a long period) it is "Loading...", and a single block
+    /// is too few to draw a line.
+    /// </summary>
+    /// <param name="points">Blocks of the 30-minute window (period 0).</param>
+    /// <param name="hist">History of the period (period &gt; 0), <c>null</c> until computed.</param>
+    public static string GetChartEmptyText(NetState state, int period, int points, HistoryResult? hist)
+    {
+        if (state == NetState.NoLog) return "Backblaze log not found";
+        if (state == NetState.Init || (period > 0 && hist is null)) return "Loading...";
+        if (period == 0 && points == 1) return "One block sent so far";
+        return "Nothing sent in the last " + Periods.At(period).Text;
+    }
+
     /// <summary>Tooltip help, without the current file.</summary>
     public static string GetTipHelp(int period) =>
         "Upload rate over 2 min, all threads combined - " + Periods.At(period).Tip + "\r\n" +

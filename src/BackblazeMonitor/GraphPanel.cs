@@ -164,9 +164,7 @@ internal sealed class GraphPanel : Control
         {
             var text = failed
                 ? "Chart unavailable (see error.log)"
-                : State == NetState.NoLog
-                    ? "Backblaze log not found"
-                    : "Nothing sent in the last " + Periods.At(Period).Text;
+                : NetworkTexts.GetChartEmptyText(State, Period, Points.Count, History);
             g.DrawString(text, _font, _message, new RectangleF(0, 0, w, h), _center);
         }
 
