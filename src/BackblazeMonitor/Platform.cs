@@ -54,7 +54,7 @@ internal static class AppPaths
     }
 }
 
-/// <summary>Text log of unexpected errors, next to the program.</summary>
+/// <summary>Text log of unexpected errors, next to the program (at most about 1 MB, then error.log.old).</summary>
 internal static class ErrorLog
 {
     private static readonly object Gate = new();
@@ -69,6 +69,7 @@ internal static class ErrorLog
             {
                 try
                 {
+                    FileRotation.RotateIfLarger(path);
                     File.AppendAllText(path, text);
                     return;
                 }
