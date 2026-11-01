@@ -287,6 +287,16 @@ public class VolumeTests
         }
     }
 
+    [Theory]
+    [InlineData(@"\\?\Volume{abc}\")]
+    [InlineData(@"\Mounts\Data")]
+    public void A_volume_without_a_drive_letter_is_left_out(string mount)
+    {
+        var info = "<bzvolume bzVolumeGuid=\"" + GE + "\" mountPointPath=\"" + mount + "\" />";
+        var vols = BackupReports.ReadVolumes(Tot, Rem, info);
+        Assert.Empty(vols);
+    }
+
     // ---------- Remaining tracker ----------
     [Fact]
     public void Remaining_tracker_caches_by_timestamp_and_retries_a_failure()

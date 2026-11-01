@@ -66,7 +66,9 @@ public static class BackupReports
         {
             var g = GetAttr(m.Value, "bzVolumeGuid");
             var p = GetAttr(m.Value, "mountPointPath");
-            if (!string.IsNullOrEmpty(g) && !string.IsNullOrEmpty(p)) letter[g] = p.Substring(0, 1).ToUpperInvariant();
+            // Only a volume with a drive letter ("E:\\"): a folder mount or a \\?\ path has no letter, and a sample
+            // saved under it would be rejected by VolumeSamples.Read at the next launch
+            if (!string.IsNullOrEmpty(g) && p is { Length: >= 2 } && char.IsAsciiLetter(p[0]) && p[1] == ':') letter[g] = p.Substring(0, 1).ToUpperInvariant();
         }
 
         var left = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
