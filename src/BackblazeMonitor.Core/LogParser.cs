@@ -117,7 +117,10 @@ public static class LogReader
     {
         var end = 0;
         if (read > 0) end = Array.LastIndexOf(buffer, (byte)10, read - 1) + 1;
-        return new LogChunk(Encoding.UTF8.GetString(buffer, 0, end), pos + end);
+        // A UTF-8 byte order mark at the start of the file is not text: left in, it would sit before the first
+        // line's timestamp and the anchored patterns would skip that line
+        var skip = pos == 0 && end >= 3 && buffer[0] == 0xEF && buffer[1] == 0xBB && buffer[2] == 0xBF ? 3 : 0;
+        return new LogChunk(Encoding.UTF8.GetString(buffer, skip, end - skip), pos + end);
     }
 
     /// <summary>

@@ -127,6 +127,17 @@ public class LogParserTests
     }
 
     [Fact]
+    public void A_byte_order_mark_at_the_start_of_the_file_is_not_part_of_the_text()
+    {
+        var bytes = new byte[] { 0xEF, 0xBB, 0xBF }.Concat(Encoding.UTF8.GetBytes("line\n")).ToArray();
+        var r = LogReader.ReadFrom(new MemoryStream(bytes), 0)!;
+        Assert.Equal("line\n", r.Text);
+        Assert.Equal(bytes.Length, r.Pos); // the position still counts the bytes of the file
+        // only at the start: from a later position nothing is dropped
+        Assert.Equal("\uFEFFx\n", LogReader.ExtractCompleteLines(new byte[] { 0xEF, 0xBB, 0xBF, (byte)'x', 10 }, 5, 7).Text);
+    }
+
+    [Fact]
     public void A_file_replaced_by_a_longer_one_is_read_from_the_start()
     {
         // the saved position (4) follows "abc\n"; the new file is longer but 4 is in the middle of its first line
