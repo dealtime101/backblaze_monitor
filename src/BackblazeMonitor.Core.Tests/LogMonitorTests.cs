@@ -31,7 +31,7 @@ public sealed class LogMonitorTests : IDisposable
 
     private LogMonitor NewMonitor() => new(_logDir, _history);
 
-    private static string Summary(LogMonitor m, DateTime sampledAt, string at = "2026-09-25 00:10:00")
+    private static string Summary(LogMonitor m, string at = "2026-09-25 00:10:00")
     {
         m.Sample(T(at));
         var tot = 0.0;
@@ -69,17 +69,17 @@ public sealed class LogMonitorTests : IDisposable
         WriteLog("23.zip", Lines.Blk("2026-09-23 08:00:00", 7000) + "\r\n", "2026-09-24 04:23:00");
         WriteLog("bzstat_lastfile_transmitted.xml", "<x>1 kBits/sec</x>", "2026-09-25 00:06:00");
 
-        Assert.Equal("8000 bytes in 3 slots, 2 points, last 00:05:00", Summary(m, default), ignoreCase: false);
+        Assert.Equal("8000 bytes in 3 slots, 2 points, last 00:05:00", Summary(m), ignoreCase: false);
         Assert.Equal("2 logs, 8000 bytes", Saved());
 
         File.AppendAllText(Path.Combine(_logDir, "25.log"), l25b.Substring(cutAt));
         File.SetLastWriteTime(Path.Combine(_logDir, "25.log"), T("2026-09-25 00:06:30"));
-        Assert.Equal("11000 bytes in 3 slots, 3 points, last 00:06:00", Summary(m, default));
-        Assert.Equal("11000 bytes in 3 slots, 3 points, last 00:06:00", Summary(m, default)); // nothing new, nothing more
+        Assert.Equal("11000 bytes in 3 slots, 3 points, last 00:06:00", Summary(m));
+        Assert.Equal("11000 bytes in 3 slots, 3 points, last 00:06:00", Summary(m)); // nothing new, nothing more
 
         WriteLog("24.zip", l24, "2026-09-25 00:07:00");
         File.Delete(Path.Combine(_logDir, "24.log"));
-        Assert.Equal("11000 bytes in 3 slots, 3 points, last 00:06:00", Summary(m, default)); // zipped: what was read stays
+        Assert.Equal("11000 bytes in 3 slots, 3 points, last 00:06:00", Summary(m)); // zipped: what was read stays
 
         var hist = HistoryCalculator.Get(m.Logs.Values.Select(e => (IReadOnlyDictionary<long, double>)e.Slots).ToList(), 86400, 900, T("2026-09-25 00:10:00"));
         Assert.Equal(11000, hist.Bytes);
@@ -87,14 +87,14 @@ public sealed class LogMonitorTests : IDisposable
         // Restart: 24.log now lives only in historique.txt; 25.log, saved at 2000 bytes, is re-read
         var m2 = NewMonitor();
         m2.LoadHistory();
-        Assert.Equal("11000 bytes in 3 slots, 2 points, last 00:06:00", Summary(m2, default));
+        Assert.Equal("11000 bytes in 3 slots, 2 points, last 00:06:00", Summary(m2));
 
         // Log shortened: re-read from zero
         WriteLog("25.log", Lines.Blk("2026-09-25 00:08:00", 500) + "\r\n", "2026-09-25 00:08:00");
-        Assert.Equal("6500 bytes in 3 slots, 1 points, last 00:08:00", Summary(m2, default));
+        Assert.Equal("6500 bytes in 3 slots, 1 points, last 00:08:00", Summary(m2));
 
         // 7 days later: the zipped log leaves the period
-        Assert.Equal("500 bytes in 1 slots, 1 points, last 00:08:00", Summary(m2, default, "2026-10-02 00:05:00"));
+        Assert.Equal("500 bytes in 1 slots, 1 points, last 00:08:00", Summary(m2, "2026-10-02 00:05:00"));
         Assert.Equal("1 logs, 500 bytes", Saved());
 
         // No more .log
