@@ -224,7 +224,7 @@ public static class VolumeSamples
     {
         try
         {
-            File.WriteAllLines(path, samples.Select(s => string.Create(CultureInfo.InvariantCulture, $"{s.T}\t{s.D}\t{s.C}")));
+            AtomicFile.WriteAllLines(path, samples.Select(s => string.Create(CultureInfo.InvariantCulture, $"{s.T}\t{s.D}\t{s.C}")));
             return true;
         }
         catch

@@ -134,28 +134,16 @@ public static class HistoryFile
                 }
             }
 
-            // Written to a neighbouring .tmp, then swapped in: WriteAllLines truncates the target BEFORE
+            // Written to a neighbouring .tmp, then swapped in: a plain WriteAllLines truncates the target BEFORE
             // writing, and a full disk or a power cut would leave an empty or cut file, the last valid copy
             // lost (zipped logs cannot be re-read).
-            var tmp = historyPath + ".tmp";
             try
             {
-                File.WriteAllLines(tmp, lines);
-                if (File.Exists(historyPath)) File.Replace(tmp, historyPath, null);
-                else File.Move(tmp, historyPath);
+                AtomicFile.WriteAllLines(historyPath, lines);
                 return true;
             }
             catch
             {
-                try
-                {
-                    File.Delete(tmp);
-                }
-                catch
-                {
-                    // Nothing more to clean
-                }
-
                 return false;
             }
         }

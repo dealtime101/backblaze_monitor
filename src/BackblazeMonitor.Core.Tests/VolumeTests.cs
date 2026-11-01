@@ -264,6 +264,29 @@ public class VolumeTests
         }
     }
 
+    [Fact]
+    public void A_write_that_fails_leaves_the_previous_file_whole_and_no_temp_file()
+    {
+        var dir = Directory.CreateTempSubdirectory("bbm-atomic").FullName;
+        try
+        {
+            var path = Path.Combine(dir, "volumes.txt");
+            Assert.True(VolumeSamples.Save(path, S1));
+            var before = File.ReadAllText(path);
+            Directory.CreateDirectory(path + ".tmp"); // the temp name is taken: the write cannot happen
+            Assert.False(VolumeSamples.Save(path, S1.Take(1)));
+            Assert.Equal(before, File.ReadAllText(path));
+            Directory.Delete(path + ".tmp");
+            Assert.True(VolumeSamples.Save(path, S1.Take(1)));
+            Assert.Single(File.ReadAllLines(path));
+            Assert.False(File.Exists(path + ".tmp"));
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
+    }
+
     // ---------- Remaining tracker ----------
     [Fact]
     public void Remaining_tracker_caches_by_timestamp_and_retries_a_failure()
