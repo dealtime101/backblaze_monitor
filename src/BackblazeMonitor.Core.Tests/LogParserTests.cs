@@ -27,7 +27,7 @@ public class LogParserTests
         Assert.Equal(1045000, blocs[0].Bits);
         Assert.Equal(10486458, blocs[0].Bytes);
         Assert.Equal(@"Chunk 00032 of I:\Series\a b.mkv", blocs[0].Name);
-        Assert.Equal("2026-09-24 04:20:24 1661213", $"{blocs[1].Time:yyyy-MM-dd HH:mm:ss} {blocs[1].Bytes}");
+        Assert.Equal("2026-09-24 04:20:24 1661213", FormattableString.Invariant($"{blocs[1].Time:yyyy-MM-dd HH:mm:ss} {blocs[1].Bytes}"));
     }
 
     [Fact]
@@ -72,7 +72,7 @@ public class LogParserTests
     [Fact]
     public void Recent_one_per_file_most_recent_to_oldest()
     {
-        var got = string.Join(" | ", LogParser.GetRecentFiles(RecentText(), 20).Select(f => $"{f.Time:HH:mm:ss} {f.Path}"));
+        var got = string.Join(" | ", LogParser.GetRecentFiles(RecentText(), 20).Select(f => FormattableString.Invariant($"{f.Time:HH:mm:ss} {f.Path}")));
         Assert.Equal(
             $@"10:00:09 I:\SERIES\A B.MKV | 10:00:08 D:\Photos\l{Ap}{Ea}t{Ea}\IMG.CR3 | 10:00:07 C:\ProgramData\x.ini | 10:00:06 C:\Docs\{Ea}t{Ea}.txt | 10:00:06 C:\Docs\Blacklist - S03E11 - 1080p.mkv | 10:00:01 I:\Films\Le film.mkv",
             got);

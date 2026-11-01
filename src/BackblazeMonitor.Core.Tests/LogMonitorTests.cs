@@ -367,7 +367,7 @@ public sealed class LogMonitorTests : IDisposable
         $@"{at} -  large  - throttle manual   8  -  1045 kBits/sec - 5000 bytes - C:\d\{name}";
 
     private static string Recent(LogMonitor m) =>
-        string.Join(", ", m.Recent.Rows().OrderBy(r => r.Time).Select(r => $"{r.Time:HH:mm} {RecentFileSet.FileName(r.Path)}"));
+        string.Join(", ", m.Recent.Rows().OrderBy(r => r.Time).Select(r => FormattableString.Invariant($"{r.Time:HH:mm} {RecentFileSet.FileName(r.Path)}")));
 
     [Fact]
     public void Recent_the_20_most_recent_of_all_logs_and_the_oldest_drop_out()
