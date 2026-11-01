@@ -5,6 +5,7 @@ namespace BackblazeMonitor;
 internal static class Program
 {
     private const string MutexName = @"Local\BackblazeMonitor.Tile";
+    private const string ShowEventName = @"Local\BackblazeMonitor.Tile.Show";
     private const string AppUserModelId = "BackblazeMonitor.Tile";
 
     private static int _errorBoxShown;
@@ -12,9 +13,23 @@ internal static class Program
     [STAThread]
     private static void Main()
     {
-        // One tile per user session: a second launch exits quietly
+        // One tile per user session. A second launch asks the first one to show itself (it may be hidden in the
+        // notification area), then exits: the user who starts it again sees something happen
         using var mutex = new Mutex(true, MutexName, out var createdNew);
-        if (!createdNew) return;
+        using var showEvent = new EventWaitHandle(false, EventResetMode.AutoReset, ShowEventName);
+        if (!createdNew)
+        {
+            try
+            {
+                showEvent.Set();
+            }
+            catch
+            {
+                // The first instance is gone or unreachable: nothing more to say
+            }
+
+            return;
+        }
 
         try
         {
@@ -40,6 +55,8 @@ internal static class Program
 
             ApplicationConfiguration.Initialize();
             using var form = new MainForm();
+            var listener = new Thread(() => ListenForSecondLaunch(showEvent, form)) { IsBackground = true, Name = "show-request" };
+            listener.Start();
             // Not ShowDialog: hiding a modal window ends its loop, and minimizing the tile to the
             // notification area would close the monitor.
             Application.Run(form);
@@ -57,6 +74,23 @@ internal static class Program
             catch (ApplicationException)
             {
                 // Not owned: nothing to release
+            }
+        }
+    }
+
+    // Each second launch signals the event: bring the tile back on the UI thread
+    private static void ListenForSecondLaunch(EventWaitHandle showEvent, MainForm form)
+    {
+        while (showEvent.WaitOne())
+        {
+            try
+            {
+                if (form.IsDisposed) return;
+                if (form.IsHandleCreated) form.BeginInvoke(form.ShowTile);
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or ObjectDisposedException)
+            {
+                return; // the window is closing
             }
         }
     }
