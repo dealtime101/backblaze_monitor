@@ -235,7 +235,8 @@ public sealed class LogMonitor
         }
 
         var cut = now.AddSeconds(-BzConstants.WindowSec);
-        _points = _points.Where(p => p.Time >= cut).ToList();
+        // _points is sorted by time: only the oldest one tells whether any point left the window
+        if (_points.Count > 0 && _points[0].Time < cut) _points = _points.Where(p => p.Time >= cut).ToList();
 
         // The peak is the highest TOTAL rate (sum of the blocks in flight), not the rate of one block
         Peak = 0.0;
