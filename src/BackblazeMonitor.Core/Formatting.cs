@@ -16,13 +16,14 @@ public static class Formatting
         var ci = BzConstants.Invariant;
         if (bits)
         {
-            if (bitsPerSec >= 1_000_000) return (bitsPerSec / 1_000_000).ToString("N1", ci) + " Mbps";
+            // Tiers change where the figure would round up to the next unit ("1,000 kbps" is "1.0 Mbps")
+            if (bitsPerSec >= 1_000_000 - 500) return (bitsPerSec / 1_000_000).ToString("N1", ci) + " Mbps";
             if (bitsPerSec >= 1000) return (bitsPerSec / 1000).ToString("N0", ci) + " kbps";
             return bitsPerSec > 0 ? "<1 kbps" : "0 kbps"; // slow but sending is not 0
         }
 
         var bps = bitsPerSec / 8;
-        if (bps >= MB) return (bps / MB).ToString("N1", ci) + " MB/s";
+        if (bps >= MB - KB / 2) return (bps / MB).ToString("N1", ci) + " MB/s";
         if (bps >= KB) return (bps / KB).ToString("N0", ci) + " KB/s";
         return bps > 0 ? "<1 KB/s" : "0 KB/s";
     }
@@ -31,9 +32,10 @@ public static class Formatting
     public static string FormatSize(double b)
     {
         var ci = BzConstants.Invariant;
-        if (b >= TB) return (b / TB).ToString("N2", ci) + " TB";
-        if (b >= GB) return (b / GB).ToString("N2", ci) + " GB";
-        if (b >= MB) return (b / MB).ToString("N1", ci) + " MB";
+        // A tier starts where the figure of the one below would round up to 1,024 of its unit
+        if (b >= TB - GB * 0.005) return (b / TB).ToString("N2", ci) + " TB";
+        if (b >= GB - MB * 0.05) return (b / GB).ToString("N2", ci) + " GB";
+        if (b >= MB - KB / 2) return (b / MB).ToString("N1", ci) + " MB";
         if (b >= KB) return (b / KB).ToString("N0", ci) + " KB";
         if (b > 0) return Math.Ceiling(b).ToString("N0", ci) + " B";
         return "0 KB";

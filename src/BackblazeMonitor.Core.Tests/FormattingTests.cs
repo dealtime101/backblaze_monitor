@@ -116,10 +116,14 @@ public class FormattingTests
     [InlineData(999, true, "<1 kbps")]   // slow but sending: not shown as 0
     [InlineData(800, true, "<1 kbps")]
     [InlineData(80000, true, "80 kbps")]
+    [InlineData(999400, true, "999 kbps")]    // still below the rounding point
+    [InlineData(999600, true, "1.0 Mbps")]    // would have been "1,000 kbps"
     [InlineData(1045000, true, "1.0 Mbps")]
     [InlineData(2e6, false, "244 KB/s")]
     [InlineData(800000, false, "98 KB/s")]
     [InlineData(0, false, "0 KB/s")]
+    [InlineData(8 * 1048000.0, false, "1,023 KB/s")]
+    [InlineData(8 * 1048100.0, false, "1.0 MB/s")]   // would have been "1,024 KB/s"
     [InlineData(4000, false, "<1 KB/s")]  // 500 B/s
     [InlineData(9e6, false, "1.1 MB/s")]
     public void Rate(double bits, bool asBits, string want) => Assert.Equal(want, Formatting.FormatRate(bits, asBits));
@@ -135,6 +139,11 @@ public class FormattingTests
     [InlineData(1073741824.0, "1.00 GB")]
     [InlineData(1099511627776.0, "1.00 TB")]
     [InlineData(1073741824.0 * 999.99, "999.99 GB")]
+    [InlineData(1048000.0, "1,023 KB")]
+    [InlineData(1048100.0, "1.0 MB")]                      // would have been "1,024 KB"
+    [InlineData(1048576.0 * 1023.9, "1,023.9 MB")]
+    [InlineData(1048576.0 * 1023.97, "1.00 GB")]           // would have been "1,024.0 MB"
+    [InlineData(1073741824.0 * 1023.996, "1.00 TB")]       // would have been "1,024.00 GB"
     public void Size(double bytes, string want) => Assert.Equal(want, Formatting.FormatSize(bytes));
 
     [Fact]
