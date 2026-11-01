@@ -50,6 +50,13 @@ public class UiLogicTests
         Assert.Equal("Start failed", f.Title);
         Assert.Equal("Backblaze: Stopped", f.Text);
         Assert.True(f.IsError);
+
+        // an elevated run that outlived its wait is neither a success nor a failure
+        var u = ActionNotices.ForServiceAction(ServiceAction.Stop, ActionOutcome.Unknown, "Running")!;
+        Assert.Equal("Stop not finished", u.Title);
+        Assert.Contains("result unknown", u.Text);
+        Assert.False(u.IsError);
+        Assert.True(ActionOutcomes.CountsAsAsked(ActionOutcome.Unknown)); // it may stop the service: no false alert
     }
 
     [Fact]

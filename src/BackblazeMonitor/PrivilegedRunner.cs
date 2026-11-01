@@ -115,6 +115,30 @@ internal static class PrivilegedRunner
     private const int AgentPolls = 240;
     private const int ElevatedTimeoutMs = 10 * 60 * 1000;
 
+    // The elevated PowerShell that outlived its wait, if any
+    private static Process? _lingering;
+
+    /// <summary>An elevated PowerShell from an earlier action is still running: no new privileged action.</summary>
+    public static bool StillRunning
+    {
+        get
+        {
+            if (_lingering is null) return false;
+            try
+            {
+                if (!_lingering.HasExited) return true;
+            }
+            catch
+            {
+                // Cannot tell: treat it as gone rather than lock the tile for good
+            }
+
+            _lingering.Dispose();
+            _lingering = null;
+            return false;
+        }
+    }
+
     /// <summary>
     /// Runs the action. <paramref name="request"/> is the agent request (service verb or bit rate), or
     /// <c>null</c> for an action the agent cannot do (the time window): UAC alone, the agent is installed at
@@ -122,6 +146,7 @@ internal static class PrivilegedRunner
     /// </summary>
     public static ActionOutcome Run(string? request, string elevatedCommand)
     {
+        if (StillRunning) return ActionOutcome.Unknown;
         var command = elevatedCommand;
         if (request is not null)
         {
@@ -225,11 +250,21 @@ internal static class PrivilegedRunner
                 WindowStyle = ProcessWindowStyle.Hidden,
                 Arguments = "-NoProfile -EncodedCommand " + EncodedCommand.Encode(command),
             };
-            using var p = Process.Start(psi);
+            var p = Process.Start(psi);
             if (p is null) return ActionOutcome.Failed;
-            if (!UiWait.Until(() => p.HasExited, ElevatedTimeoutMs)) return ActionOutcome.Failed;
-            p.WaitForExit();
-            return ActionOutcomes.FromExitCode(p.ExitCode);
+            if (!UiWait.Until(() => p.HasExited, ElevatedTimeoutMs))
+            {
+                // Still running (elevated: this process cannot stop it). Not a failure: it may yet apply the
+                // change. It stays tracked, and StillRunning refuses new actions until it has exited.
+                _lingering = p;
+                return ActionOutcome.Unknown;
+            }
+
+            using (p)
+            {
+                p.WaitForExit();
+                return ActionOutcomes.FromExitCode(p.ExitCode);
+            }
         }
         catch (Win32Exception ex)
         {

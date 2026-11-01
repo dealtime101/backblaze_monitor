@@ -702,7 +702,7 @@ internal sealed partial class MainForm : Form, ITrayHost
         }
         else
         {
-            SetLimitMessage(LimitMessages.Failed, false);
+            SetLimitMessage(outcome == ActionOutcome.Unknown ? LimitMessages.Unfinished : LimitMessages.Failed, false);
         }
 
         _qosPacer.RequestSoon(); // re-read the real state on the next tick

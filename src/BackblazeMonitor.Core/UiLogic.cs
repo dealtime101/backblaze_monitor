@@ -13,6 +13,12 @@ public enum ActionOutcome
 
     /// <summary>The user declined the UAC prompt: nothing was attempted.</summary>
     Cancelled,
+
+    /// <summary>
+    /// The elevated PowerShell did not finish in time and is still running: it may still apply the change.
+    /// Neither success nor failure; no new privileged action is accepted until it has exited.
+    /// </summary>
+    Unknown,
 }
 
 /// <summary>How the switch of Backblaze to automatic mode (bzcli) ended.</summary>
@@ -73,6 +79,7 @@ public static class ActionNotices
         {
             ActionOutcome.Cancelled => new ActionNotice($"{verb} cancelled", "UAC prompt declined.", false),
             ActionOutcome.Failed => new ActionNotice($"{verb} failed", $"Backblaze: {statusText}", true),
+            ActionOutcome.Unknown => new ActionNotice($"{verb} not finished", $"Still running in the background, result unknown. Backblaze: {statusText}", false),
             _ => null,
         };
     }
@@ -84,6 +91,7 @@ public static class LimitMessages
     public const string Working = "working...";
     public const string Applied = "applied";
     public const string Failed = "failed/denied";
+    public const string Unfinished = "still running";
     public const string AutoEnabled = "auto enabled";
     public const string AutoFailed = "failed";
     public const string AutoTimedOut = "timed out";
