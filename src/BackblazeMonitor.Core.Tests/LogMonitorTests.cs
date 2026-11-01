@@ -382,7 +382,7 @@ public sealed class LogMonitorTests : IDisposable
         File.AppendAllText(p, string.Join("\r\n", Sent("2026-10-01 00:26:00", "f3.bin"), Sent("2026-10-01 00:27:00", "F25.BIN"), ""));
         File.SetLastWriteTime(p, T("2026-10-01 00:27:00"));
         m.Sample(T("2026-10-01 00:30:00"));
-        var want = string.Join(", ", Enumerable.Range(7, 18).Select(i => $"00:{i:00} f{i}.bin").Concat(new[] { "00:26 f3.bin", "00:27 f25.bin" }));
+        var want = string.Join(", ", Enumerable.Range(7, 18).Select(i => $"00:{i:00} f{i}.bin").Concat(new[] { "00:26 f3.bin", "00:27 F25.BIN" })); // the latest spelling of the file
         Assert.Equal(want, Recent(m));
     }
 
@@ -475,6 +475,19 @@ public sealed class LogMonitorTests : IDisposable
         // recreated (monthly rotation): longer than the old position, different content from byte 0
         WriteLog("25.log", Sent("2026-09-25 00:02:00", "a-much-longer-name.bin") + "\r\n" + Sent("2026-09-25 00:03:00", "c.bin") + "\r\n", "2026-09-25 00:03:00");
         Assert.Equal("10000 bytes in 1 slots, 2 points, last 00:03:00", Summary(m, "2026-09-25 00:10:00"));
+    }
+
+    [Fact]
+    public void A_newer_entry_brings_the_latest_spelling_of_the_path_an_older_one_does_not()
+    {
+        var set = new RecentFileSet();
+        set.Merge(new[] { new RecentFile(T("2026-10-01 10:00:00"), @"C:\Videos\movie.mkv") });
+        set.Merge(new[] { new RecentFile(T("2026-10-01 09:00:00"), @"C:\VIDEOS\MOVIE.MKV") }); // the same file, older: its spelling is ignored
+        Assert.Equal(@"C:\Videos\movie.mkv", Assert.Single(set.Rows()).Path);
+        set.Merge(new[] { new RecentFile(T("2026-10-01 11:00:00"), @"C:\Videos\Movie.mkv") }); // newer, renamed in case only
+        var row = Assert.Single(set.Rows());
+        Assert.Equal(@"C:\Videos\Movie.mkv", row.Path);
+        Assert.Equal(T("2026-10-01 11:00:00"), row.Time);
     }
 
     [Fact]

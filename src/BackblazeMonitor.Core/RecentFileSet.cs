@@ -16,12 +16,18 @@ public sealed class RecentFileSet
     /// <summary>Time recorded for a path, or <c>null</c>.</summary>
     public DateTime? this[string path] => _items.TryGetValue(path, out var t) ? t : null;
 
-    /// <summary>Records the files of a log chunk: the newest time of each file wins.</summary>
+    /// <summary>
+    /// Records the files of a log chunk: the newest time of each file wins, and so does its spelling (the
+    /// comparison ignores case, but a dictionary keeps the key it first saw: a file renamed in capitals only
+    /// would otherwise keep showing its old name).
+    /// </summary>
     public void Merge(IEnumerable<RecentFile> files)
     {
         foreach (var x in files)
         {
-            if (!_items.TryGetValue(x.Path, out var old) || x.Time > old) _items[x.Path] = x.Time;
+            if (_items.TryGetValue(x.Path, out var old) && x.Time <= old) continue;
+            _items.Remove(x.Path);
+            _items[x.Path] = x.Time;
         }
     }
 
