@@ -139,12 +139,22 @@ public class SettingsAndBzInfoTests
     public void Written_during_the_read_is_re_read_on_the_next_pass()
     {
         var sync = new BzInfoSync();
-        var t1 = new DateTime(2026, 9, 25, 12, 0, 0, DateTimeKind.Utc);
-        var t2 = t1.AddSeconds(1);
-        Assert.Equal(BzInfoSyncResult.Updated, sync.Sync(t1, () => BzXml("false", "once_per_day")));
-        // the retained timestamp is the earlier one; the file is rewritten while read
-        Assert.Equal(BzInfoSyncResult.Updated, sync.Sync(t2, () => BzXml("false", "once_per_day")));
-        Assert.Equal(BzInfoSyncResult.Updated, sync.Sync(t2.AddSeconds(1), () => BzXml("true", "continuously")));
+        var stamp = new DateTime(2026, 9, 25, 12, 0, 0, DateTimeKind.Utc);
+        var text = BzXml("false", "once_per_day");
+
+        // The pass takes the file's timestamp first, then reads: the file is rewritten (new text, new
+        // timestamp) while the read runs, so the timestamp the pass holds is older than the text it got.
+        var held = stamp;
+        Assert.Equal(BzInfoSyncResult.Updated, sync.Sync(held, () =>
+        {
+            text = BzXml("true", "continuously");
+            stamp = stamp.AddSeconds(1);
+            return text;
+        }));
+
+        // next pass: the file's timestamp moved, so it is read again (not Unchanged), and only then it settles
+        Assert.Equal(BzInfoSyncResult.Updated, sync.Sync(stamp, () => text));
+        Assert.Equal(BzInfoSyncResult.Unchanged, sync.Sync(stamp, () => text));
         Assert.Equal(Auto, Show(sync.Info));
     }
 
