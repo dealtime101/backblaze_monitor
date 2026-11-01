@@ -587,13 +587,23 @@ internal sealed partial class MainForm : Form, ITrayHost
         bits = Math.Round(bits);
         _qosBits = bits;
         var idx = QosChoices.IndexOf(_choices, bits);
-        // Policy set elsewhere with a value missing from the list: show its rate as is
+        // Policy set elsewhere with a value missing from the list: show its rate as is, in one custom entry
+        // at the end that the next such value replaces (the menu does not pile up stale rates)
         if (idx < 0)
         {
             var text = QosChoices.LabelFor(bits);
-            _choices.Add(new QosChoice(text, (long)bits));
-            _cboLimit.Items.Add(text);
-            idx = _cboLimit.Items.Count - 1;
+            var custom = new QosChoice(text, (long)bits);
+            idx = QosChoices.All.Count;
+            if (_choices.Count > idx)
+            {
+                _choices[idx] = custom;
+                _cboLimit.Items[idx] = text;
+            }
+            else
+            {
+                _choices.Add(custom);
+                _cboLimit.Items.Add(text);
+            }
         }
 
         if (_cboLimit.SelectedIndex == idx) return;
