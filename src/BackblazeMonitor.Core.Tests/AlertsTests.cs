@@ -97,7 +97,7 @@ public class AlertsTests
         Assert.Equal("remote Plex stream", PauseWitness.Parse(Now, " remote Plex stream \r\nsecond line")!.Why);
         Assert.Equal("", PauseWitness.Parse(Now, "")!.Why);
         Assert.Null(PauseWitness.Parse(Now, null));
-        Assert.Null(PauseWitness.Read(Path.Combine(Path.GetTempPath(), "bbm-no-such-witness.txt")));
+        Assert.Null(PauseWitness.Read(Path.Combine(Path.GetTempPath(), "bbm-no-such-witness-" + Guid.NewGuid().ToString("N") + ".txt")));
     }
 
     [Fact]
