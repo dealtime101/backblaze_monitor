@@ -59,6 +59,16 @@ public class UiLogicTests
         Assert.True(ActionOutcomes.CountsAsAsked(ActionOutcome.Unknown)); // it may stop the service: no false alert
     }
 
+    [Theory]
+    [InlineData(@"C:\Program Files\dotnet\dotnet.exe", true)]
+    [InlineData(@"C:\Program Files\dotnet\DOTNET.EXE", true)]
+    [InlineData("/usr/bin/dotnet", true)]
+    [InlineData(@"C:\Tools\BackblazeMonitor.exe", false)]
+    [InlineData(@"C:\Tools\dotnet-tools\BackblazeMonitor.exe", false)]
+    [InlineData("", false)]
+    [InlineData(null, false)]
+    public void TheDotnetHostIsNeverTheShortcutTarget(string? path, bool host) => Assert.Equal(host, StartupApproved.IsDotnetHost(path));
+
     [Fact]
     public void StartupApprovedFlagUsesTheOddByte()
     {

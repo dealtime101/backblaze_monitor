@@ -157,6 +157,14 @@ public static class StartupApproved
     /// </summary>
     public static bool IsEnabled(bool shortcutExists, object? registryValue) =>
         shortcutExists && !IsDisabled(registryValue);
+
+    /// <summary>
+    /// The running process is the .NET host (<c>dotnet BackblazeMonitor.dll</c>), not the program's own exe: a
+    /// shortcut to it would start the host with no arguments and nothing else.
+    /// </summary>
+    public static bool IsDotnetHost(string? processPath) =>
+        !string.IsNullOrEmpty(processPath) &&
+        string.Equals(Path.GetFileNameWithoutExtension(processPath.Replace('\\', '/')), "dotnet", StringComparison.OrdinalIgnoreCase);
 }
 
 /// <summary>Reading of the SYSTEM agent's run: when did the request we started finish, and how.</summary>

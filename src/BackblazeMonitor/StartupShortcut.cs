@@ -15,7 +15,8 @@ internal static class StartupShortcut
 
     private static string LinkPath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Startup), FileName);
 
-    private static string? ExePath => Environment.ProcessPath;
+    // The program's own exe; null when run through the dotnet host, whose path must never become a shortcut target
+    private static string? ExePath => StartupApproved.IsDotnetHost(Environment.ProcessPath) ? null : Environment.ProcessPath;
 
     /// <summary>On when the shortcut exists and is not disabled.</summary>
     public static bool IsEnabled()
