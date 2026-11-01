@@ -8,6 +8,20 @@ public class AlertsTests
     private static readonly DateTime Now = new(2026, 9, 25, 12, 0, 0);
     private static readonly DateTime Never = DateTime.MinValue;
 
+    [Fact]
+    public void Elapsed_counts_the_time_that_passed_across_a_clock_change()
+    {
+        var toronto = TimeZoneInfo.FindSystemTimeZoneById("America/Toronto");
+        // spring forward 2026-03-08 02:00 -> 03:00: 01:30 to 03:30 is one hour, not two
+        Assert.Equal(60, Elapsed.Minutes(new DateTime(2026, 3, 8, 1, 30, 0), new DateTime(2026, 3, 8, 3, 30, 0), toronto));
+        // fall back 2026-11-01 02:00 -> 01:00: 00:30 to 02:30 is three hours, not two
+        Assert.Equal(180, Elapsed.Minutes(new DateTime(2026, 11, 1, 0, 30, 0), new DateTime(2026, 11, 1, 2, 30, 0), toronto));
+        Assert.Equal(1, Elapsed.Minutes(new DateTime(2026, 3, 8, 1, 59, 0), new DateTime(2026, 3, 8, 3, 0, 0), toronto));
+        Assert.True(Elapsed.Minutes(new DateTime(2026, 3, 8, 2, 30, 0), Now, toronto) > 0); // a time inside the skipped hour does not throw
+        Assert.Equal(7, Elapsed.Minutes(new DateTime(2026, 9, 25, 12, 0, 0), new DateTime(2026, 9, 25, 12, 7, 0), toronto));
+        Assert.True(Elapsed.Minutes(Never, Now, toronto) > 5); // "never asked"
+    }
+
     // ---------- Stop alert ----------
     [Fact]
     public void Stop_not_requested() => Assert.NotNull(Alerts.GetStopAlert("Running", "Stopped", Never, Now));

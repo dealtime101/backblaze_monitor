@@ -2,6 +2,29 @@ using System.Globalization;
 
 namespace BackblazeMonitor.Core;
 
+/// <summary>
+/// Time between two local times. Subtracting two local <see cref="DateTime"/> values counts the hour a
+/// clock change adds or removes; going through UTC gives the time that really passed.
+/// </summary>
+public static class Elapsed
+{
+    /// <summary>Minutes from <paramref name="from"/> to <paramref name="to"/>, both local times.</summary>
+    public static double Minutes(DateTime from, DateTime to, TimeZoneInfo? zone = null)
+    {
+        zone ??= TimeZoneInfo.Local;
+        return (ToUtc(to, zone) - ToUtc(from, zone)).TotalMinutes;
+    }
+
+    private static DateTime ToUtc(DateTime local, TimeZoneInfo zone)
+    {
+        // MinValue stands for "never": converting it would fall below the representable range
+        if (local <= DateTime.MinValue.AddDays(2)) return local;
+        var unspecified = DateTime.SpecifyKind(local, DateTimeKind.Unspecified);
+        if (zone.IsInvalidTime(unspecified)) unspecified = unspecified.AddHours(1); // the skipped hour of spring forward
+        return TimeZoneInfo.ConvertTimeToUtc(unspecified, zone);
+    }
+}
+
 /// <summary>Alert messages and the logic that decides when they ring.</summary>
 public static class Alerts
 {
@@ -20,9 +43,9 @@ public static class Alerts
     public static string? GetStopAlert(string prev, string status, DateTime askedAt, DateTime now, PauseWitness? witness = null)
     {
         if (!Eq(status, "Stopped") || prev.Length == 0 || Eq(prev, "Stopped")) return null;
-        if ((now - askedAt).TotalMinutes < 5) return null;
+        if (Elapsed.Minutes(askedAt, now) < 5) return null;
         // A stop wanted by the external tool is not a failure: not within 5 min of its witness
-        if (witness is not null && (now - witness.At).TotalMinutes < 5) return null;
+        if (witness is not null && Elapsed.Minutes(witness.At, now) < 5) return null;
         return StopMessage;
     }
 
@@ -43,7 +66,7 @@ public static class Alerts
         else if (Eq(schedule, "once_per_day")) limit = 1440 + stallMin;
         else return null;
         // PowerShell's [int] cast rounds to the nearest even integer
-        var min = (int)Math.Round((now - since.Value).TotalMinutes, MidpointRounding.ToEven);
+        var min = (int)Math.Round(Elapsed.Minutes(since.Value, now), MidpointRounding.ToEven);
         if (min < limit) return null;
         return string.Format(
             BzConstants.Invariant,
