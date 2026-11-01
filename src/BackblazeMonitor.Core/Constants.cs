@@ -63,10 +63,13 @@ public static class BzConstants
     /// <summary>Largest tray tooltip accepted by NotifyIcon: 127 characters since .NET Core 3 (it was 63 on .NET Framework).</summary>
     public const int TrayTextMax = 127;
 
-    /// <summary>The culture used for every formatted number and day name.</summary>
+    /// <summary>The culture used for every formatted number and time (not for day names: see <see cref="English"/>).</summary>
     public static readonly CultureInfo Invariant = CultureInfo.InvariantCulture;
 
-    /// <summary>English day names, whatever the language of the machine.</summary>
+    /// <summary>
+    /// The culture used for day names ("Fri 25"), whatever the language of the machine. Invariant gives the
+    /// same names, but this one says what it is for, and is where a localised name would be switched on.
+    /// </summary>
     public static readonly CultureInfo English = CultureInfo.GetCultureInfo("en-US");
 }
 
