@@ -60,6 +60,7 @@ internal sealed partial class MainForm : Form, ITrayHost
         _alerts.StallMin = _settings.StallAlertMin;
         _btnPin.Checked = _settings.TopMost;
         TopMost = _settings.TopMost;
+        _graph.CurveFailed += ex => LogOnce("chart", ex);
         ReadFailures.Reported += (path, ex) => LogOnce("read " + Path.GetFileName(path), ex);
         _monitor.LoadHistory();
         _volumes.Load();

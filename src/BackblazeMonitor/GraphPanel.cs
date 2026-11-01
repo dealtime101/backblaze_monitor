@@ -122,6 +122,9 @@ internal sealed class GraphPanel : Control
     /// <summary>Hovered block or slot: its column is drawn as a marker.</summary>
     public GraphHit? Hover { get; set; }
 
+    /// <summary>The curve computation threw (raised on each repaint that fails: the owner de-duplicates).</summary>
+    public event Action<Exception>? CurveFailed;
+
     protected override void OnPaint(PaintEventArgs e)
     {
         var g = e.Graphics;
@@ -131,14 +134,18 @@ internal sealed class GraphPanel : Control
         g.FillRectangle(_back, 0, 0, w, h);
 
         var seq = new List<GraphPoint>();
+        var failed = false;
         try
         {
             if (Period > 0) seq = GraphCurve.GetHistory(History, w, h);
             else if (Points.Count >= 1) seq = GraphCurve.Get(Points, DateTime.Now, w, h);
         }
-        catch
+        catch (Exception ex)
         {
+            // Not "nothing sent": the curve could not be computed. The owner logs it (once per distinct error)
             seq.Clear();
+            failed = true;
+            CurveFailed?.Invoke(ex);
         }
 
         if (seq.Count >= 2)
@@ -155,9 +162,11 @@ internal sealed class GraphPanel : Control
         }
         else
         {
-            var text = State == NetState.NoLog
-                ? "Backblaze log not found"
-                : "Nothing sent in the last " + Periods.At(Period).Text;
+            var text = failed
+                ? "Chart unavailable (see error.log)"
+                : State == NetState.NoLog
+                    ? "Backblaze log not found"
+                    : "Nothing sent in the last " + Periods.At(Period).Text;
             g.DrawString(text, _font, _message, new RectangleF(0, 0, w, h), _center);
         }
 
