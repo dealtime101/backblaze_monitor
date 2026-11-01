@@ -184,7 +184,13 @@ public static class VolumeSamples
     /// <summary>
     /// Reads volumes.txt ("T TAB letter TAB finished bytes"). Missing file or damaged lines are ignored.
     /// </summary>
-    public static IReadOnlyList<VolumeSample> Read(string path)
+    public static IReadOnlyList<VolumeSample> Read(string path) => TryRead(path) ?? new List<VolumeSample>();
+
+    /// <summary>
+    /// Like <see cref="Read"/>, but <c>null</c> when the file exists and cannot be read (locked, no access):
+    /// that is not "no history", and writing over it would lose it. A missing file is an empty list.
+    /// </summary>
+    public static IReadOnlyList<VolumeSample>? TryRead(string path)
     {
         var list = new List<VolumeSample>();
         try
@@ -201,9 +207,13 @@ public static class VolumeSamples
                 }
             }
         }
-        catch
+        catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
         {
             return new List<VolumeSample>();
+        }
+        catch
+        {
+            return null;
         }
 
         return list;
@@ -237,8 +247,25 @@ public sealed class VolumeSampleStore
     /// <summary>Current samples.</summary>
     public IReadOnlyList<VolumeSample> Samples { get; private set; } = Array.Empty<VolumeSample>();
 
+    // The file exists but could not be read: nothing is written over it until a read succeeds.
+    private bool _loadFailed;
+
     /// <summary>Loads the samples from disk (none if missing).</summary>
-    public void Load() => Samples = VolumeSamples.Read(_path);
+    public void Load() => Reload();
+
+    // On success, what was recorded in memory in the meantime is merged into what the file holds.
+    private void Reload()
+    {
+        var onDisk = VolumeSamples.TryRead(_path);
+        if (onDisk is null)
+        {
+            _loadFailed = true;
+            return;
+        }
+
+        _loadFailed = false;
+        Samples = onDisk.Union(Samples).OrderBy(s => s.T).ToList();
+    }
 
     /// <summary>
     /// Records a sample per disk (no more than one per disk per hour) and saves. No disk: nothing happens.
@@ -247,7 +274,14 @@ public sealed class VolumeSampleStore
     public bool Record(IReadOnlyList<VolumeInfo> vols, long nowSec)
     {
         if (vols.Count == 0) return false;
+        if (_loadFailed) Reload();
         Samples = VolumeSamples.Add(Samples, vols, nowSec);
+        if (_loadFailed)
+        {
+            Pending = true;
+            return false;
+        }
+
         // The flag stays up until a write succeeds: Record only runs when the report changes (about hourly),
         // so without it a failed write would never be retried (BAC466.35)
         Pending = !VolumeSamples.Save(_path, Samples);
@@ -260,7 +294,9 @@ public sealed class VolumeSampleStore
     /// <summary>Retries the save in waiting, if any; called every tick, whatever the report does.</summary>
     public void RetryPending()
     {
-        if (Pending) Pending = !VolumeSamples.Save(_path, Samples);
+        if (!Pending) return;
+        if (_loadFailed) Reload();
+        if (!_loadFailed) Pending = !VolumeSamples.Save(_path, Samples);
     }
 }
 

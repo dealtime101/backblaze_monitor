@@ -235,6 +235,35 @@ public class VolumeTests
         }
     }
 
+    [Fact]
+    public void An_unreadable_volumes_file_is_not_overwritten_and_is_merged_once_readable()
+    {
+        var dir = Directory.CreateTempSubdirectory("bbm-vol-locked").FullName;
+        try
+        {
+            var path = Path.Combine(dir, "volumes.txt");
+            Directory.CreateDirectory(path); // exists, cannot be read as a file
+            Assert.Null(VolumeSamples.TryRead(path));
+            var store = new VolumeSampleStore(path);
+            store.Load();
+            Assert.False(store.Record(new[] { new VolumeInfo("E", 1000, 100) }, T0 + 5000));
+            Assert.True(store.Pending);
+            Assert.True(Directory.Exists(path)); // nothing written over it
+
+            Directory.Delete(path);
+            Assert.True(VolumeSamples.Save(path, S1));
+            store.RetryPending();
+            Assert.False(store.Pending);
+            var back = VolumeSamples.Read(path);
+            Assert.Equal(S1.Count + 1, back.Count); // the old history is still there, plus the new sample
+            Assert.Contains(back, s => s.T == T0 + 5000);
+        }
+        finally
+        {
+            Directory.Delete(dir, true);
+        }
+    }
+
     // ---------- Remaining tracker ----------
     [Fact]
     public void Remaining_tracker_caches_by_timestamp_and_retries_a_failure()
