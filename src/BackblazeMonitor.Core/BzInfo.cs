@@ -20,7 +20,16 @@ public sealed record BzInfo(bool Auto, int Throttle, int Threads, string Schedul
     private static readonly Regex ScheduleRx = new("backup_schedule_type=\"([^\"]*)\"", Opt);
 
     /// <summary>Nothing read yet.</summary>
-    public static readonly BzInfo Unknown = new(false, 0, 0, "");
+    public static readonly BzInfo Unknown = new(false, 0, 0, "") { Known = false };
+
+    /// <summary>
+    /// At least one setting was read from the file. Until then the values are placeholders: the line must not
+    /// say "manual, 0 %" nor offer a link that switches Backblaze to automatic on a configuration nobody has seen.
+    /// </summary>
+    public bool Known { get; init; } = true;
+
+    /// <summary>Text shown when the file was read but holds none of the settings.</summary>
+    public const string UnreadText = "Backblaze: configuration not read";
 
     /// <summary>Text shown when bzinfo.xml does not exist.</summary>
     public const string NotFoundText = "Backblaze: configuration not found";
@@ -32,15 +41,20 @@ public sealed record BzInfo(bool Auto, int Throttle, int Threads, string Schedul
     public static BzInfo Parse(string raw, BzInfo? previous = null)
     {
         var info = previous ?? Unknown;
+        var found = false;
         var m = AutoRx.Match(raw);
+        found |= m.Success;
         if (m.Success) info = info with { Auto = string.Equals(m.Groups[1].Value, "true", StringComparison.OrdinalIgnoreCase) };
         m = ThrottleRx.Match(raw);
+        found |= m.Success;
         if (m.Success && int.TryParse(m.Groups[1].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var throttle)) info = info with { Throttle = throttle };
         m = ThreadsRx.Match(raw);
+        found |= m.Success;
         if (m.Success && int.TryParse(m.Groups[1].Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var threads)) info = info with { Threads = threads };
         m = ScheduleRx.Match(raw);
+        found |= m.Success;
         if (m.Success) info = info with { Schedule = m.Groups[1].Value };
-        return info;
+        return found ? info with { Known = true } : info;
     }
 
     /// <summary>
@@ -48,12 +62,12 @@ public sealed record BzInfo(bool Auto, int Throttle, int Threads, string Schedul
     /// limit becomes the cap (the intended configuration). Manual: its own throttle may be lower than ours
     /// and then decides, mainly through the number of threads.
     /// </summary>
-    public string StateText => Auto
+    public string StateText => !Known ? UnreadText : Auto
         ? "Backblaze: automatic - the limit above is the cap"
         : string.Format(CultureInfo.InvariantCulture, "Backblaze manual: {0} %, {1} thread(s) - click for auto", Throttle, Threads);
 
     /// <summary>In manual mode the whole text is a link that switches back to auto: true when the link exists.</summary>
-    public bool HasLink => !Auto;
+    public bool HasLink => Known && !Auto;
 }
 
 /// <summary>Outcome of a <see cref="BzInfoSync.Sync"/> pass.</summary>

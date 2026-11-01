@@ -112,6 +112,23 @@ public class SettingsAndBzInfoTests
     }
 
     [Fact]
+    public void Nothing_read_is_not_shown_as_manual_zero_percent_with_a_link()
+    {
+        Assert.False(BzInfo.Unknown.Known);
+        Assert.Equal(BzInfo.UnreadText, BzInfo.Unknown.StateText);
+        Assert.False(BzInfo.Unknown.HasLink);
+        // a file that holds none of the settings changes nothing
+        var empty = BzInfo.Parse("<bzinfo><do_backup /></bzinfo>");
+        Assert.False(empty.Known);
+        Assert.False(empty.HasLink);
+        // one setting is enough to know
+        var some = BzInfo.Parse("<bzinfo><do_backup net_auto_throttle=\"false\" /></bzinfo>");
+        Assert.True(some.Known);
+        Assert.True(some.HasLink);
+        Assert.True(BzInfo.Parse(BzXml("true", "continuously")).Known);
+    }
+
+    [Fact]
     public void Parse_keeps_the_previous_value_of_an_absent_attribute()
     {
         var prev = BzInfo.Parse(BzXml("false", "once_per_day"));
