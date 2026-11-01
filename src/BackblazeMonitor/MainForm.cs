@@ -114,14 +114,25 @@ internal sealed partial class MainForm : Form, ITrayHost
         RenderNetworkIfIdle();
     }
 
-    public void ShowVolumes()
+    public void ShowVolumes() => _ = ShowVolumesAsync();
+
+    // The three reports are read off the UI thread; the dialog opens once they are in.
+    private async Task ShowVolumesAsync()
     {
-        var vols = BackupReports.ReadVolumes(
-            SharedFile.ReadText(BzPaths.TotalPath),
-            SharedFile.ReadText(BzPaths.RemainPath),
-            SharedFile.ReadText(BzPaths.InfoPath));
-        var text = VolumeSamples.GetText(vols, _volumes.Samples, DateTime.Now);
-        VolumeProgressDialog.Show(Visible ? this : null, text, TopMost, _style.Mono);
+        try
+        {
+            var vols = await Task.Run(() => BackupReports.ReadVolumes(
+                SharedFile.ReadText(BzPaths.TotalPath),
+                SharedFile.ReadText(BzPaths.RemainPath),
+                SharedFile.ReadText(BzPaths.InfoPath)));
+            if (IsDisposed) return;
+            var text = VolumeSamples.GetText(vols, _volumes.Samples, DateTime.Now);
+            VolumeProgressDialog.Show(Visible ? this : null, text, TopMost, _style.Mono);
+        }
+        catch (Exception ex)
+        {
+            LogOnce("progress per disk", ex);
+        }
     }
 
     public bool IsStartupEnabled() => StartupShortcut.IsEnabled();
