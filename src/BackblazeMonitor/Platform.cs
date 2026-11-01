@@ -263,7 +263,8 @@ internal static class ServiceMonitor
     private static string ReadStartType(IntPtr svc)
     {
         Native.QueryServiceConfig(svc, IntPtr.Zero, 0, out var needed);
-        if (needed <= 0 || needed > 64 * 1024) return "Unknown";
+        // The size query must fail with "buffer too small"; any other error is not a question of size
+        if (Marshal.GetLastWin32Error() != Native.ErrorInsufficientBuffer || needed <= 0 || needed > 64 * 1024) return "Unknown";
         var buf = Marshal.AllocHGlobal(needed);
         try
         {
