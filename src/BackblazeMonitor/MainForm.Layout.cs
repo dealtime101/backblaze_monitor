@@ -149,7 +149,7 @@ internal sealed partial class MainForm
             Size = new Size(138, 22),
             Font = _style.Details,
             DropDownStyle = ComboBoxStyle.DropDownList,
-            MaxDropDownItems = 17, // the 15 steps and the window entry without scrolling
+            MaxDropDownItems = QosChoices.All.Count + 1, // every entry (None, the Mbps steps, the window) and the one custom rate, without scrolling
             AccessibleName = "Upload limit",
             TabStop = true,
             TabIndex = 1,
