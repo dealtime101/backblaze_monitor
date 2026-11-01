@@ -127,7 +127,8 @@ public class VolumeTests
     public void Pace_only_the_last_7_days_count()
     {
         const long now7 = 8 * 86400;
-        var s = new[] { Smp(0, "E", 0), Smp(86400, "E", 1000000), Smp(now7 - 7 * 86400, "E", 1000000), Smp(now7, "E", 1000000 + 86400) };
+        // 43200: clearly before the window; 86400 is exactly 7 days back, on the boundary, and counts
+        var s = new[] { Smp(43200, "E", 0), Smp(now7 - 7 * 86400, "E", 1000000), Smp(now7, "E", 1000000 + 86400) };
         Assert.Equal(86400.0 / (7 * 86400), VolumeSamples.GetRate(s, "E", now7));
     }
 
