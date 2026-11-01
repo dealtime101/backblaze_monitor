@@ -213,8 +213,9 @@ public static class VolumeSamples
         {
             return new List<VolumeSample>();
         }
-        catch
+        catch (Exception ex)
         {
+            ReadFailures.Report(path, ex);
             return null;
         }
 
@@ -229,8 +230,9 @@ public static class VolumeSamples
             AtomicFile.WriteAllLines(path, samples.Select(s => string.Create(CultureInfo.InvariantCulture, $"{s.T}\t{s.D}\t{s.C}")));
             return true;
         }
-        catch
+        catch (Exception ex)
         {
+            ReadFailures.Report(path, ex, reading: false);
             return false;
         }
     }

@@ -164,7 +164,7 @@ public class LogParserTests
     {
         var dir = Directory.CreateTempSubdirectory("bbm-fail").FullName;
         var seen = new List<string>();
-        void Listen(string p, Exception e) => seen.Add(Path.GetFileName(p) + ":" + e.GetType().Name);
+        void Listen(string p, Exception e) { if (p.StartsWith(dir, StringComparison.Ordinal)) seen.Add(Path.GetFileName(p) + ":" + e.GetType().Name); } // only this test's folder: other tests run in parallel
         ReadFailures.Reported += Listen;
         try
         {
@@ -175,6 +175,29 @@ public class LogParserTests
             Assert.Null(SharedFile.ReadText(Path.Combine(dir, "locked.xml")));
             Assert.Single(seen);
             Assert.StartsWith("locked.xml:", seen[0]);
+        }
+        finally
+        {
+            ReadFailures.Reported -= Listen;
+            Directory.Delete(dir, true);
+        }
+    }
+
+    [Fact]
+    public void A_history_that_cannot_be_written_or_read_is_reported()
+    {
+        var dir = Directory.CreateTempSubdirectory("bbm-histfail").FullName;
+        var seen = new List<string>();
+        void Listen(string p, Exception e) { if (p.StartsWith(dir, StringComparison.Ordinal)) seen.Add(Path.GetFileName(p)); }
+        ReadFailures.Reported += Listen;
+        try
+        {
+            var logs = new Dictionary<string, LogEntry>();
+            Assert.False(HistoryFile.Save(Path.Combine(dir, "no-such-folder", "historique.txt"), logs));
+            Assert.Contains("historique.txt", seen);
+            Directory.CreateDirectory(Path.Combine(dir, "volumes.txt"));
+            Assert.Null(VolumeSamples.TryRead(Path.Combine(dir, "volumes.txt")));
+            Assert.Contains("volumes.txt", seen);
         }
         finally
         {

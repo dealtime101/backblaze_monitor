@@ -174,8 +174,10 @@ public static class HistoryFile
                 AtomicFile.WriteAllLines(historyPath, lines);
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
+                // Full disk, rights, vanished folder: said once in the error log (the caller retries)
+                ReadFailures.Report(historyPath, ex, reading: false);
                 return false;
             }
         }

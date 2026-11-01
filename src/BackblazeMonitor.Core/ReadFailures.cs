@@ -16,9 +16,10 @@ public static class ReadFailures
     internal static bool IsReportable(Exception ex) =>
         ex is not (FileNotFoundException or DirectoryNotFoundException);
 
-    internal static void Report(string path, Exception ex)
+    /// <param name="reading">false for a write: there, a missing folder is a failure worth a line too.</param>
+    internal static void Report(string path, Exception ex, bool reading = true)
     {
-        if (!IsReportable(ex)) return;
+        if (reading && !IsReportable(ex)) return;
         try
         {
             Reported?.Invoke(path, ex);
