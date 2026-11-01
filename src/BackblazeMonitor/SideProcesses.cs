@@ -10,49 +10,44 @@ internal static class QosReader
     private const int KillWaitMs = 3_000; // after a kill: a refused kill must not hold the worker for ever
 
     /// <summary>
-    /// Current throttle in bits/s (0 = no policy), or <c>null</c> when it could not be read (the caller
-    /// keeps what it shows). Blocking: call it from a worker thread.
+    /// Current throttle in bits/s (0 = no policy). <c>null</c> when the output could not be understood (the
+    /// caller keeps what it shows). A failure to run it (no PowerShell, a script error, a timeout) throws, with
+    /// the exit code and PowerShell's error text in the message: the caller logs it once and keeps what it
+    /// shows. Blocking: call it from a worker thread.
     /// </summary>
     public static double? Read()
     {
-        try
+        var psi = new ProcessStartInfo(AppPaths.PowerShellExe)
         {
-            var psi = new ProcessStartInfo(AppPaths.PowerShellExe)
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            Arguments = "-NoProfile -NonInteractive -EncodedCommand " + EncodedCommand.Encode(QosReadResult.GetScript()),
+        };
+        using var p = Process.Start(psi) ?? throw new InvalidOperationException("QoS read: PowerShell did not start");
+        var err = p.StandardError.ReadToEndAsync();
+        var outTask = p.StandardOutput.ReadToEndAsync();
+        if (!p.WaitForExit(TimeoutMs))
+        {
+            try
             {
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                Arguments = "-NoProfile -NonInteractive -EncodedCommand " + EncodedCommand.Encode(QosReadResult.GetScript()),
-            };
-            using var p = Process.Start(psi);
-            if (p is null) return null;
-            var err = p.StandardError.ReadToEndAsync();
-            var outTask = p.StandardOutput.ReadToEndAsync();
-            if (!p.WaitForExit(TimeoutMs))
+                p.Kill(entireProcessTree: true);
+            }
+            catch
             {
-                try
-                {
-                    p.Kill(entireProcessTree: true);
-                }
-                catch
-                {
-                    // Already gone
-                }
-
-                p.WaitForExit(KillWaitMs);
-                return null;
+                // Already gone, or refused: the wait below is bounded either way
             }
 
             p.WaitForExit(KillWaitMs);
-            _ = err.Wait(1000);
-            if (!outTask.Wait(1000)) return null;
-            return p.ExitCode == 0 ? QosReadResult.Parse(outTask.Result) : null;
+            throw new TimeoutException($"QoS read: no answer after {TimeoutMs / 1000} s");
         }
-        catch
-        {
-            return null;
-        }
+
+        p.WaitForExit(KillWaitMs);
+        var errText = err.Wait(1000) ? err.Result.Trim() : "";
+        if (p.ExitCode != 0) throw new InvalidOperationException($"QoS read: PowerShell exited with {p.ExitCode}. {errText}".Trim());
+        if (!outTask.Wait(1000)) return null;
+        return QosReadResult.Parse(outTask.Result);
     }
 }
 
