@@ -107,6 +107,9 @@ public static class Periods
 
     public static int Count => All.Count;
 
+    /// <summary>The period at <paramref name="index"/>, kept inside the list: a stale index never throws.</summary>
+    public static Period At(int index) => All[Math.Clamp(index, 0, All.Count - 1)];
+
     /// <summary>Span of the longest period, in seconds (history retention).</summary>
     public static int LongestSec => All[^1].Sec;
 }

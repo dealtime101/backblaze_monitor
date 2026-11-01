@@ -397,6 +397,17 @@ public sealed class LogMonitorTests : IDisposable
     }
 
     [Fact]
+    public void A_period_index_out_of_range_is_kept_inside_the_list()
+    {
+        var m = NewMonitor();
+        m.Sample(T("2026-10-01 00:30:00"));
+        Assert.Equal("7 d", Periods.At(99).Text);
+        Assert.Equal("30 min", Periods.At(-3).Text);
+        Assert.NotNull(m.GetHistory(99, T("2026-10-01 00:30:00")));
+        Assert.Contains("Last 7 days", NetworkTexts.GetTipHelp(99));
+    }
+
+    [Fact]
     public void Recent_set_keys_rows_and_file_names()
     {
         var s = new RecentFileSet();

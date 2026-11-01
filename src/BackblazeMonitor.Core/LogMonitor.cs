@@ -277,7 +277,7 @@ public sealed class LogMonitor
     public HistoryResult? GetHistory(int period, DateTime now)
     {
         if (period <= 0) return null;
-        var per = Periods.All[period];
+        var per = Periods.At(period);
         return HistoryCalculator.Get(Logs.Values.Select(e => (IReadOnlyDictionary<long, double>)e.Slots).ToList(), per.Sec, per.Step, now);
     }
 }
@@ -305,7 +305,7 @@ public static class NetworkTexts
         if (state == NetState.NoLog) return "Transmission log not found";
         if (period > 0 && hist is not null)
         {
-            return Formatting.FormatSize(hist.Bytes) + " over " + Periods.All[period].Text + "  -  average " +
+            return Formatting.FormatSize(hist.Bytes) + " over " + Periods.At(period).Text + "  -  average " +
                    Formatting.FormatRate(hist.Bytes * 8 / hist.Seconds, showBits);
         }
 
@@ -314,7 +314,7 @@ public static class NetworkTexts
 
     /// <summary>Tooltip help, without the current file.</summary>
     public static string GetTipHelp(int period) =>
-        "Upload rate over 2 min, all threads combined - " + Periods.All[period].Tip + "\r\n" +
+        "Upload rate over 2 min, all threads combined - " + Periods.At(period).Tip + "\r\n" +
         "Click: switch between Mbps and MB/s" + "\r\n" +
         "Right-click: 30 min, 24 h, 7 d";
 

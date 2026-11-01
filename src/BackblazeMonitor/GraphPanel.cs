@@ -157,7 +157,7 @@ internal sealed class GraphPanel : Control
         {
             var text = State == NetState.NoLog
                 ? "Backblaze log not found"
-                : "Nothing sent in the last " + Periods.All[Math.Clamp(Period, 0, Periods.Count - 1)].Text;
+                : "Nothing sent in the last " + Periods.At(Period).Text;
             g.DrawString(text, _font, _message, new RectangleF(0, 0, w, h), _center);
         }
 

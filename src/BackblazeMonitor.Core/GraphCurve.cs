@@ -98,7 +98,7 @@ public static class GraphCurve
             if (hist is null || hist.Bytes <= 0) return null;
             var n = hist.Rates.Length;
             var i = Math.Max(0, Math.Min(n - 1, (int)Math.Floor(x * n / w)));
-            var step = Periods.All[period].Step;
+            var step = Periods.At(period).Step;
             var a = hist.First.AddSeconds((double)i * step);
             var b = a.AddSeconds(step);
             if (b > now) b = now;

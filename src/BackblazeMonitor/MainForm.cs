@@ -418,7 +418,7 @@ internal sealed partial class MainForm : Form, ITrayHost
 
         _hist = m.GetHistory(period, now);
         _lblNetStats.Text = NetworkTexts.GetStatsText(m.State, period, _hist, m.Peak, m.Total, bits);
-        _graph.AccessibleDescription = Periods.All[period].Tip + " : " + _lblNetStats.Text;
+        _graph.AccessibleDescription = Periods.At(period).Tip + " : " + _lblNetStats.Text;
 
         // Tooltip: the current file, without flickering on every tick
         _tipHelp = NetworkTexts.GetTipHelp(period);
