@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 namespace BackblazeMonitor.Core;
 
 /// <summary>
-/// User preferences saved next to the program in settings.txt (ASCII, CR LF):
+/// User preferences saved next to the program in settings.txt (UTF-8 without BOM, CR LF; plain keys are the same bytes as ASCII):
 /// <c>TopMost</c>, <c>Units</c>, <c>Period</c>, <c>StallAlertMin</c>, <c>Schedule</c>.
 /// The launch-at-sign-in state is deliberately not here: it is the Startup shortcut itself.
 /// </summary>
@@ -109,7 +109,7 @@ public sealed class Settings
     }
 
     /// <summary>
-    /// Writes settings.txt (ASCII). Returns whether it was written. After a failed load it first reads the file
+    /// Writes settings.txt (UTF-8 without BOM). Returns whether it was written. After a failed load it first reads the file
     /// again: the hand-edited keys (vacation) are taken from it when they are empty here, and nothing is written
     /// while it cannot be read.
     /// </summary>
