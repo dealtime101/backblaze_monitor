@@ -205,17 +205,30 @@ internal static class PrivilegedRunner
         var installed = AgentTaskClient.GetArguments();
         if (installed is null || !AgentCommands.IsCurrent(installed, AppPaths.AgentFile, AgentBits())) return null;
         DateTime before;
-        try
+        for (var attempt = 1; ; attempt++)
         {
-            File.WriteAllText(AppPaths.AgentFile, request);
-            (before, _) = AgentTaskClient.GetLastRun();
-            var gap = AgentRun.GetStartGapMs(before, DateTime.Now);
-            if (gap > 0) UiWait.Pump((int)Math.Ceiling(gap));
-            AgentTaskClient.Start();
-        }
-        catch
-        {
-            return null;
+            try
+            {
+                File.WriteAllText(AppPaths.AgentFile, request);
+                (before, _) = AgentTaskClient.GetLastRun();
+                var gap = AgentRun.GetStartGapMs(before, DateTime.Now);
+                if (gap > 0) UiWait.Pump((int)Math.Ceiling(gap));
+                AgentTaskClient.Start();
+                break;
+            }
+            catch (Exception ex)
+            {
+                // A passing error of the Task Scheduler or of the file is not "agent missing": once more before
+                // the UAC prompt and the reinstall, and the cause goes to the error log either way
+                if (attempt < 2)
+                {
+                    UiWait.Pump(400);
+                    continue;
+                }
+
+                ErrorLog.Write("agent request", ex);
+                return null;
+            }
         }
 
         for (var n = 0; n < AgentPolls; n++)
