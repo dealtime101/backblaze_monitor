@@ -22,17 +22,20 @@ internal sealed class ScheduleDialog : Form
         ClientSize = new Size(400, 210);
         Font = SystemFonts.MessageBoxFont ?? Font;
 
+        // The prompt takes the height its text needs with the system font; the field and the buttons sit below it
+        var promptHeight = DialogLayout.TextHeight(ScheduleTexts.Prompt, Font, 376);
         var prompt = new Label
         {
             Text = ScheduleTexts.Prompt,
             Location = new Point(12, 12),
-            Size = new Size(376, 130),
+            Size = new Size(376, promptHeight),
             AutoSize = false,
         };
+        var fieldTop = 12 + promptHeight + 8;
         _text = new TextBox
         {
             Text = initial,
-            Location = new Point(12, 150),
+            Location = new Point(12, fieldTop),
             Size = new Size(376, 23),
             TabIndex = 0,
             AccessibleName = "Time window",
@@ -41,7 +44,7 @@ internal sealed class ScheduleDialog : Form
         {
             Text = "OK",
             DialogResult = DialogResult.OK,
-            Location = new Point(232, 178),
+            Location = new Point(232, fieldTop + 28),
             Size = new Size(75, 26),
             TabIndex = 1,
         };
@@ -49,10 +52,11 @@ internal sealed class ScheduleDialog : Form
         {
             Text = "Cancel",
             DialogResult = DialogResult.Cancel,
-            Location = new Point(313, 178),
+            Location = new Point(313, fieldTop + 28),
             Size = new Size(75, 26),
             TabIndex = 2,
         };
+        ClientSize = new Size(400, fieldTop + 28 + 26 + 8);
         Controls.AddRange(new Control[] { prompt, _text, ok, cancel });
         AcceptButton = ok;
         CancelButton = cancel;
@@ -71,6 +75,14 @@ internal sealed class ScheduleDialog : Form
         var r = owner is null ? d.ShowDialog() : d.ShowDialog(owner);
         return r == DialogResult.OK ? d._text.Text : null;
     }
+}
+
+/// <summary>Sizes a dialog to its text.</summary>
+internal static class DialogLayout
+{
+    /// <summary>Height of <paramref name="text"/> wrapped at <paramref name="width"/> in <paramref name="font"/>, never less than the 130 px the box was drawn for.</summary>
+    public static int TextHeight(string text, Font font, int width) =>
+        Math.Max(130, TextRenderer.MeasureText(text, font, new Size(width, 0), TextFormatFlags.WordBreak | TextFormatFlags.NoPadding).Height + 4);
 }
 
 /// <summary>Answer of the start box.</summary>
