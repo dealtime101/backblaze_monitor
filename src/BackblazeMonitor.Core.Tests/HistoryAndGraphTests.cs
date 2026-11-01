@@ -348,5 +348,16 @@ public class HistoryAndGraphTests
     }
 
     [Fact]
+    public void Rate_falls_to_zero_when_sending_stopped_and_the_last_block_cannot_be_in_flight_any_more()
+    {
+        var t0 = new DateTime(2026, 9, 27, 12, 4, 10);
+        var last = new LogBlock(t0, 4e6, 10485760, "last.mkv"); // about 21 s in flight
+        // 130 s later: nothing completed in the last 2 min, but the next line may still come (idle limit 150 s): its rate stays
+        Assert.Equal(4e6, RateCalculator.GetCurrentRate(new[] { last }, t0.AddSeconds(130)));
+        // 10 min later: sending is over, so zero and not 4 Mbps for ever
+        Assert.Equal(0, RateCalculator.GetCurrentRate(new[] { last }, t0.AddMinutes(10)));
+    }
+
+    [Fact]
     public void Rate_no_block_zero() => Assert.Equal(0, RateCalculator.GetCurrentRate(Array.Empty<LogBlock>(), Now));
 }

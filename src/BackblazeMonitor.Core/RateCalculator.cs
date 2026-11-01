@@ -6,8 +6,9 @@ public static class RateCalculator
     /// <summary>
     /// Current rate in bits/s. The log gives the rate of ONE block, ONE thread, and Backblaze runs several
     /// threads: the bytes completed within the last 2 minutes tell the truth. Nothing completed but a
-    /// block still in flight: keep the last block's rate rather than zero (a single slow thread would
-    /// otherwise drop to zero between two lines).
+    /// block that can still be in flight (see <see cref="IsSending"/>): keep the last block's rate rather than
+    /// zero (a single slow thread would otherwise drop to zero between two lines). Otherwise sending has
+    /// stopped and the rate is zero.
     /// </summary>
     /// <param name="points">Window points, sorted by time.</param>
     public static double GetCurrentRate(IReadOnlyList<LogBlock> points, DateTime now)
@@ -20,7 +21,7 @@ public static class RateCalculator
         }
 
         if (octets > 0) return 8 * octets / BzConstants.RateSec;
-        if (points.Count > 0) return points[^1].Bits;
+        if (points.Count > 0 && IsSending(points[^1], now)) return points[^1].Bits;
         return 0.0;
     }
 
