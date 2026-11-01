@@ -45,7 +45,7 @@ public sealed class LogMonitorTests : IDisposable
             }
         }
 
-        return $"{tot} bytes in {n} slots, {m.Points.Count} points, last {m.LastSent:HH:mm:ss}";
+        return FormattableString.Invariant($"{tot} bytes in {n} slots, {m.Points.Count} points, last {m.LastSent:HH:mm:ss}");
     }
 
     private string Saved()
