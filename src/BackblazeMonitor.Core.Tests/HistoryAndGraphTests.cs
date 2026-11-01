@@ -298,9 +298,12 @@ public class HistoryAndGraphTests
         fils.Add(new LogBlock(t0.AddSeconds(-36), 564e3, 10485760, "f6.mkv"));
         fils.Add(new LogBlock(t0.AddSeconds(15), 421e3, 10485760, "f7.mkv"));
         var sorted = fils.OrderBy(p => p.Time).ToList();
+        // 4.9 Mbps holds for the 2-minute window pinned by The_rate_window_is_two_minutes
         Assert.Equal("4.9 Mbps", Formatting.FormatRate(RateCalculator.GetCurrentRate(sorted, t0.AddSeconds(15)), true));
-        Assert.Equal(120, BzConstants.RateSec);
     }
+
+    [Fact]
+    public void The_rate_window_is_two_minutes() => Assert.Equal(120, BzConstants.RateSec);
 
     [Fact]
     public void Rate_nothing_finished_block_in_flight_keeps_its_rate()
