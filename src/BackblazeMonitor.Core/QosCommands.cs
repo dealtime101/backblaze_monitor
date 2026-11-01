@@ -149,16 +149,22 @@ public static class AgentCommands
         var t = BzConstants.AgentTask;
         return "try {\r\n" +
                GetFolderSetup(agentFile, sid) +
-               $"$a = New-ScheduledTaskAction -Execute '{psHome}\\powershell.exe' -Argument '{GetArguments(agentFile, allowedBits)}'\r\n" +
+               $"$a = New-ScheduledTaskAction -Execute '{EscapeSingleQuoted(psHome)}\\powershell.exe' -Argument '{GetArguments(agentFile, allowedBits)}'\r\n" +
                "$o = New-ScheduledTaskSettingsSet -MultipleInstances Queue -ExecutionTimeLimit (New-TimeSpan -Minutes 5)\r\n" +
                $"Register-ScheduledTask -TaskName '{t}' -Action $a -Settings $o -User 'SYSTEM' " +
                "-RunLevel Highest -Force -ErrorAction Stop | Out-Null\r\n" +
                "$c = New-Object -ComObject Schedule.Service; $c.Connect()\r\n" +
-               $"$c.GetFolder('\\').GetTask('{t}').SetSecurityDescriptor('D:(A;;FA;;;SY)(A;;FA;;;BA)(A;;GRGX;;;{sid})', 0)\r\n" +
+               $"$c.GetFolder('\\').GetTask('{t}').SetSecurityDescriptor('D:(A;;FA;;;SY)(A;;FA;;;BA){(IsSid(sid) ? $"(A;;GRGX;;;{sid})" : "")}', 0)\r\n" +
                // The failure is kept in a file the tile reads afterwards (PrivilegedRunner) and puts in error.log:
                // the action that follows is not prevented, but a UAC prompt at every action now has a reason on record
                "} catch { try { " + GetErrorWrite(agentFile) + " } catch { } }\r\n";
     }
+
+    /// <summary>
+    /// A SID in its string form (S-1-5-21-...). Anything else is never put in the script: the tile's user then
+    /// gets no right and the tile falls back to the UAC prompt.
+    /// </summary>
+    public static bool IsSid(string sid) => System.Text.RegularExpressions.Regex.IsMatch(sid, @"\AS-1-[0-9]+(-[0-9]+)*\z", System.Text.RegularExpressions.RegexOptions.CultureInvariant);
 
     /// <summary>Where the installation leaves the reason of its failure (next to the request file).</summary>
     public static string ErrorFile(string agentFile) => agentFile + ".err";
@@ -182,7 +188,7 @@ public static class AgentCommands
         var cut = agentFile.LastIndexOf('\\');
         if (cut <= 0) return "";
         var dir = EscapeSingleQuoted(agentFile.Substring(0, cut));
-        var user = sid.Length > 0 && sid.All(c => char.IsAsciiLetterOrDigit(c) || c == '-') ? $"(A;OICI;0x1301df;;;{sid})" : "";
+        var user = IsSid(sid) ? $"(A;OICI;0x1301df;;;{sid})" : "";
         return $"New-Item -ItemType Directory -Force -Path '{dir}' | Out-Null\r\n" +
                "$ac = New-Object System.Security.AccessControl.DirectorySecurity\r\n" +
                $"$ac.SetSecurityDescriptorSddlForm('D:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA){user}')\r\n" +

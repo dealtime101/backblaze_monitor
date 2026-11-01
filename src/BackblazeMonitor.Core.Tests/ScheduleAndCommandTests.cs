@@ -208,6 +208,18 @@ public class ScheduleAndCommandTests
     {
         var setup = AgentCommands.GetSetup(@"C:\x\requete.txt", Bits, sid);
         Assert.Contains("SetSecurityDescriptorSddlForm('D:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)')\r\n", setup);
+        Assert.Contains("SetSecurityDescriptor('D:(A;;FA;;;SY)(A;;FA;;;BA)', 0)", setup); // the task's descriptor too
+        Assert.DoesNotContain("Remove-Item", setup);
+    }
+
+    [Fact]
+    public void Agent_setup_escapes_the_powershell_folder_and_accepts_only_a_real_sid()
+    {
+        var setup = AgentCommands.GetSetup(@"C:\x\requete.txt", Bits, "S-1-5-21-1-2-3-1001", @"C:\Dany's PS");
+        Assert.Contains("-Execute 'C:\\Dany''s PS\\powershell.exe'", setup);
+        Assert.True(AgentCommands.IsSid("S-1-5-21-1-2-3-1001"));
+        Assert.True(AgentCommands.IsSid("S-1-5-18"));
+        foreach (var bad in new[] { "", "S-1-", "S-1-5-21-a", "S-1-5-21-1)(A;;GA;;;WD", "s-1-5-18", "S-1-5-18\n" }) Assert.False(AgentCommands.IsSid(bad), bad);
     }
 
     // ---------- Limit set elsewhere ----------

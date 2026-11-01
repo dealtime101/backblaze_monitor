@@ -124,7 +124,7 @@ public static class ScheduleCommands
             .Select(m => "'" + day.AddMinutes(m).ToString("s", CultureInfo.InvariantCulture) + "'"));
         return "try {\r\n" +
                $"$t = {at} | ForEach-Object {{ $x = New-ScheduledTaskTrigger -Daily -At $_; $x.StartBoundary = $_; $x }}\r\n" +
-               $"$a = New-ScheduledTaskAction -Execute '{psHome}\\powershell.exe' -Argument '-NoProfile -NonInteractive -EncodedCommand {enc}'\r\n" +
+               $"$a = New-ScheduledTaskAction -Execute '{AgentCommands.EscapeSingleQuoted(psHome)}\\powershell.exe' -Argument '-NoProfile -NonInteractive -EncodedCommand {enc}'\r\n" +
                "$o = New-ScheduledTaskSettingsSet -StartWhenAvailable -ExecutionTimeLimit (New-TimeSpan -Minutes 5)\r\n" +
                $"Register-ScheduledTask -TaskName '{BzConstants.ScheduleTask}' -Trigger $t -Action $a -Settings $o " +
                "-User 'SYSTEM' -RunLevel Highest -Force -ErrorAction Stop | Out-Null\r\n" +
