@@ -113,12 +113,14 @@ public class FormattingTests
     [InlineData(4.89e6, true, "4.9 Mbps")]
     [InlineData(262e3, true, "262 kbps")]
     [InlineData(0, true, "0 kbps")]
-    [InlineData(999, true, "0 kbps")]
+    [InlineData(999, true, "<1 kbps")]   // slow but sending: not shown as 0
+    [InlineData(800, true, "<1 kbps")]
     [InlineData(80000, true, "80 kbps")]
     [InlineData(1045000, true, "1.0 Mbps")]
     [InlineData(2e6, false, "244 KB/s")]
     [InlineData(800000, false, "98 KB/s")]
     [InlineData(0, false, "0 KB/s")]
+    [InlineData(4000, false, "<1 KB/s")]  // 500 B/s
     [InlineData(9e6, false, "1.1 MB/s")]
     public void Rate(double bits, bool asBits, string want) => Assert.Equal(want, Formatting.FormatRate(bits, asBits));
 

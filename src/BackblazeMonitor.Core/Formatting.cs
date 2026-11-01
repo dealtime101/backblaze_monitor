@@ -18,13 +18,13 @@ public static class Formatting
         {
             if (bitsPerSec >= 1_000_000) return (bitsPerSec / 1_000_000).ToString("N1", ci) + " Mbps";
             if (bitsPerSec >= 1000) return (bitsPerSec / 1000).ToString("N0", ci) + " kbps";
-            return "0 kbps";
+            return bitsPerSec > 0 ? "<1 kbps" : "0 kbps"; // slow but sending is not 0
         }
 
         var bps = bitsPerSec / 8;
         if (bps >= MB) return (bps / MB).ToString("N1", ci) + " MB/s";
         if (bps >= KB) return (bps / KB).ToString("N0", ci) + " KB/s";
-        return "0 KB/s";
+        return bps > 0 ? "<1 KB/s" : "0 KB/s";
     }
 
     /// <summary>Size in binary units: TB, GB (2 decimals), MB (1), KB (0); under 1 KB the bytes, so a remainder is never shown as 0.</summary>
