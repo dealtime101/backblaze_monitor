@@ -115,12 +115,12 @@ public class SettingsAndBzInfoTests
     public void Parse_keeps_the_previous_value_of_an_absent_attribute()
     {
         var prev = BzInfo.Parse(BzXml("false", "once_per_day"));
-        var next = BzInfo.Parse("<bzinfo net_throttle=\"80\" />", prev);
+        var next = BzInfo.Parse("<bzinfo><do_backup net_throttle=\"80\" /></bzinfo>", prev); // the real structure, attributes missing from do_backup
         Assert.Equal(80, next.Throttle);
         Assert.Equal(4, next.Threads);
         Assert.Equal("once_per_day", next.Schedule);
         Assert.False(next.Auto);
-        Assert.Equal(prev.Threads, BzInfo.Parse("<bzinfo num_backup_threads=\"x\" />", prev).Threads);
+        Assert.Equal(prev.Threads, BzInfo.Parse("<bzinfo><do_backup num_backup_threads=\"x\" /></bzinfo>", prev).Threads);
     }
 
     // The timestamp is remembered only after a successful read.
