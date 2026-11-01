@@ -218,8 +218,9 @@ internal sealed partial class MainForm : Form, ITrayHost
     {
         _timer.Stop();
         _tray.Dispose();
-        // A tick still running saves the history itself at its next new slot
-        if (!_busy) _monitor.SaveHistory();
+        // The process ends with the window, so a running tick's own save would never come: wait for its worker
+        // (a few seconds at most), then save. If it does not finish, leave the file alone rather than race it.
+        if (!_workerRunning || UiWait.Until(() => !_workerRunning, 5_000, 30)) _monitor.SaveHistory();
     }
 
     protected override void Dispose(bool disposing)
