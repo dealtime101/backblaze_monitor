@@ -22,6 +22,7 @@ internal sealed partial class MainForm : Form, ITrayHost
     private readonly QosReadPacer _qosPacer = new();
     private readonly System.Windows.Forms.Timer _timer = new() { Interval = BzConstants.TickMs };
     private readonly HashSet<string> _loggedErrors = new();
+    private DateTime _loggedErrorsSince = DateTime.UtcNow;
     private readonly TrayController _tray;
 
     private bool _busy;          // a tick is running (its worker thread owns the monitor objects)
@@ -279,8 +280,15 @@ internal sealed partial class MainForm : Form, ITrayHost
 
     private void LogOnce(string where, Exception ex)
     {
-        // Disk and process errors repeat every tick: one line per distinct error
-        if (_loggedErrors.Count < 50 && _loggedErrors.Add(where + "|" + ex.GetType().Name + "|" + ex.Message)) ErrorLog.Write(where, ex);
+        // Disk and process errors repeat every tick: one line per place and exception type (the message often carries
+        // a path or a value, which would use any quota up), and the set starts over every hour so a later outage still shows.
+        if (DateTime.UtcNow - _loggedErrorsSince > TimeSpan.FromHours(1))
+        {
+            _loggedErrors.Clear();
+            _loggedErrorsSince = DateTime.UtcNow;
+        }
+
+        if (_loggedErrors.Add(where + "|" + ex.GetType().Name)) ErrorLog.Write(where, ex);
     }
 
     private static DateTime? StampUtc(string path)
