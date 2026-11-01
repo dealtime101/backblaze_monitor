@@ -6,7 +6,7 @@ namespace BackblazeMonitor.Core;
 public static class AppInfo
 {
     public const string Name = "Backblaze Monitor";
-    public const string Version = "1.1";
+    public const string Version = "1.2";
 
     /// <summary>Window title: name and version.</summary>
     public static string Title => $"{Name} v{Version}";
