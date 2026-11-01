@@ -507,6 +507,11 @@ internal sealed partial class MainForm : Form, ITrayHost
 
                     (_canStart, _canStop, _canRestart) = (true, false, false);
                     break;
+                case ServiceStatusKind.Paused:
+                    // Stable, and it stays so until someone acts: not the all-disabled look of a transition
+                    color = UiStyle.Orange;
+                    (_canStart, _canStop, _canRestart) = (false, true, true);
+                    break;
                 default:
                     color = UiStyle.Orange;
                     _canStart = _canStop = _canRestart = false;

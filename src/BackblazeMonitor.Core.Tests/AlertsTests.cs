@@ -190,6 +190,8 @@ public class AlertsTests
         Assert.Equal(ServiceStatusKind.Running, ServiceText.Classify("Running"));
         Assert.Equal(ServiceStatusKind.Stopped, ServiceText.Classify("Stopped"));
         Assert.Equal(ServiceStatusKind.Transitional, ServiceText.Classify("StartPending"));
+        Assert.Equal(ServiceStatusKind.Paused, ServiceText.Classify("Paused"));
+        Assert.Equal("Paused", ServiceText.GetStatusText("Paused"));
         Assert.Equal("Paused", ServiceText.GetStatusText("Paused"));
         Assert.Equal("Starting...", ServiceText.GetStatusText("StartPending"));
         Assert.Equal("'bzserv' does not exist", ServiceText.NotFoundDetails);

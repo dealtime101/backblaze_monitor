@@ -145,6 +145,9 @@ public enum ServiceStatusKind
     NotFound,
     Running,
     Stopped,
+
+    /// <summary>A stable state that does not change by itself: it stays until someone acts (Stop or Restart).</summary>
+    Paused,
     Transitional,
 }
 
@@ -174,6 +177,7 @@ public static class ServiceText
         if (status is null) return ServiceStatusKind.NotFound;
         if (status == "Running") return ServiceStatusKind.Running;
         if (status == "Stopped") return ServiceStatusKind.Stopped;
+        if (status == "Paused") return ServiceStatusKind.Paused;
         return ServiceStatusKind.Transitional;
     }
 
